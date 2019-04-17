@@ -11,14 +11,14 @@ from utils.datasets import *
 from utils.utils import *
 
 # Initialize hyperparameters
-hyp = {'k': 8.4875,  # loss multiple
-       'xy': 0.079756,  # xy loss fraction
-       'wh': 0.010461,  # wh loss fraction
-       'cls': 0.02105,  # cls loss fraction
-       'conf': 0.88873,  # conf loss fraction
-       'iou_t': 0.1,  # iou target-anchor training threshold
-       'lr0': 0.001,  # initial learning rate
-       'lrf': -2.,  # final learning rate = lr0 * (10 ** lrf)
+hyp = {'k': 7.158,  # loss multiple
+       'xy': 0.08555,  # xy loss fraction
+       'wh': 0.01003,  # wh loss fraction
+       'cls': 0.01756,  # cls loss fraction
+       'conf': 0.8869,  # conf loss fraction
+       'iou_t': 0.07866,  # iou target-anchor training threshold
+       'lr0': 0.001032,  # initial learning rate
+       'lrf': -1.785,  # final learning rate = lr0 * (10 ** lrf)
        'momentum': 0.9,  # SGD momentum
        'weight_decay': 0.0005,  # optimizer weight decay
        }
