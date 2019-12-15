@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from utils import torch_utils
+from . import torch_utils
 
 matplotlib.rc('font', **{'size': 12})
 
@@ -31,31 +31,55 @@ def init_seeds(seed=0):
 
 
 def load_classes(path):
-    # Loads class labels at 'path'
-    fp = open(path, 'r')
-    names = fp.read().split('\n')
+    # Loads *.names file at 'path'
+    with open(path, 'r') as f:
+        names = f.read().split('\n')
     return list(filter(None, names))  # filter removes empty strings (such as last line)
 
 
-def model_info(model):
+def model_info(model, report='summary'):
     # Plots a line-by-line description of a PyTorch model
     n_p = sum(x.numel() for x in model.parameters())  # number parameters
     n_g = sum(x.numel() for x in model.parameters() if x.requires_grad)  # number gradients
-    print('\n%5s %40s %9s %12s %20s %10s %10s' % ('layer', 'name', 'gradient', 'parameters', 'shape', 'mu', 'sigma'))
-    for i, (name, p) in enumerate(model.named_parameters()):
-        name = name.replace('module_list.', '')
-        print('%5g %40s %9s %12g %20s %10.3g %10.3g' % (
-            i, name, p.requires_grad, p.numel(), list(p.shape), p.mean(), p.std()))
-    print('Model Summary: %g layers, %g parameters, %g gradients' % (i + 1, n_p, n_g))
+    if report is 'full':
+        print('%5s %40s %9s %12s %20s %10s %10s' % ('layer', 'name', 'gradient', 'parameters', 'shape', 'mu', 'sigma'))
+        for i, (name, p) in enumerate(model.named_parameters()):
+            name = name.replace('module_list.', '')
+            print('%5g %40s %9s %12g %20s %10.3g %10.3g' %
+                  (i, name, p.requires_grad, p.numel(), list(p.shape), p.mean(), p.std()))
+    print('Model Summary: %g layers, %g parameters, %g gradients' % (len(list(model.parameters())), n_p, n_g))
+
+
+def labels_to_class_weights(labels, nc=80):
+    # Get class weights (inverse frequency) from training labels
+    # print("-"*20,np.array(labels).shape, labels[0])
+    labels = np.concatenate(labels, 0)  # labels.shape = (866643, 5) for COCO
+    # print("-"*20,np.array(labels).shape)
+    classes = labels[:, 0].astype(np.int)  # labels = [class xywh]
+    # print("-"*20,np.array(classes).shape)
+    weights = np.bincount(classes, minlength=nc)  # occurences per class
+    weights[weights == 0] = 1  # replace empty bins with 1
+    weights = 1 / weights  # number of targets per class
+    weights /= weights.sum()  # normalize
+    return torch.Tensor(weights)
+
+
+def labels_to_image_weights(labels, nc=80, class_weights=np.ones(80)):
+    # Produces image weights based on class mAPs
+    n = len(labels)
+    class_counts = np.array([np.bincount(labels[i][:, 0].astype(np.int), minlength=nc) for i in range(n)])
+    image_weights = (class_weights.reshape(1, nc) * class_counts).sum(1)
+    # index = random.choices(range(n), weights=image_weights, k=1)  # weight image sample
+    return image_weights
 
 
 def coco_class_weights():  # frequency of each class in coco train2014
-    weights = 1 / torch.FloatTensor(
-        [187437, 4955, 30920, 6033, 3838, 4332, 3160, 7051, 7677, 9167, 1316, 1372, 833, 6757, 7355, 3302, 3776, 4671,
+    n = [187437, 4955, 30920, 6033, 3838, 4332, 3160, 7051, 7677, 9167, 1316, 1372, 833, 6757, 7355, 3302, 3776, 4671,
          6769, 5706, 3908, 903, 3686, 3596, 6200, 7920, 8779, 4505, 4272, 1862, 4698, 1962, 4403, 6659, 2402, 2689,
          4012, 4175, 3411, 17048, 5637, 14553, 3923, 5539, 4289, 10084, 7018, 4314, 3099, 4638, 4939, 5543, 2038, 4004,
          5053, 4578, 27292, 4113, 5931, 2905, 11174, 2873, 4036, 3415, 1517, 4122, 1980, 4464, 1190, 2302, 156, 3933,
-         1877, 17630, 4337, 4624, 1075, 3468, 135, 1380])
+         1877, 17630, 4337, 4624, 1075, 3468, 135, 1380]
+    weights = 1 / torch.Tensor(n)
     weights /= weights.sum()
     return weights
 
@@ -100,15 +124,13 @@ def xywh2xyxy(x):
     return y
 
 
-def scale_coords(img_size, coords, img0_shape):
-    # Rescale x1, y1, x2, y2 from 416 to image size
-    gain = float(img_size) / max(img0_shape)  # gain  = old / new
-    pad_x = (img_size - img0_shape[1] * gain) / 2  # width padding
-    pad_y = (img_size - img0_shape[0] * gain) / 2  # height padding
-    coords[:, [0, 2]] -= pad_x
-    coords[:, [1, 3]] -= pad_y
+def scale_coords(img1_shape, coords, img0_shape):
+    # Rescale coords1 (xyxy) from img1_shape to img0_shape
+    gain = max(img1_shape) / max(img0_shape)  # gain  = old / new
+    coords[:, [0, 2]] -= (img1_shape[1] - img0_shape[1] * gain) / 2  # x padding
+    coords[:, [1, 3]] -= (img1_shape[0] - img0_shape[0] * gain) / 2  # y padding
     coords[:, :4] /= gain
-    coords[:, :4] = torch.clamp(coords[:, :4], min=0)
+    coords[:, :4] = coords[:, :4].clamp(min=0)
     return coords
 
 
@@ -249,15 +271,15 @@ def compute_loss(p, targets, model):  # predictions, targets, model
 
     # Define criteria
     MSE = nn.MSELoss()
-    CE = nn.CrossEntropyLoss()
+    CE = nn.CrossEntropyLoss()  # (weight=model.class_weights)
     BCE = nn.BCEWithLogitsLoss()
 
     # Compute losses
     h = model.hyp  # hyperparameters
     bs = p[0].shape[0]  # batch size
-    k = h['k'] * bs  # loss gain
+    k = bs  # loss gain
     for i, pi0 in enumerate(p):  # layer i predictions, i
-        b, a, gj, gi = indices[i]  # image, anchor, gridx, gridy
+        b, a, gj, gi = indices[i]  # image, anchor, gridy, gridx
         tconf = torch.zeros_like(pi0[..., 0])  # conf
 
         # Compute losses
@@ -291,7 +313,7 @@ def build_targets(model, targets):
 
         # iou of targets-anchors
         t, a = targets, []
-        gwh = targets[:, 4:6] * layer.nG
+        gwh = targets[:, 4:6] * layer.ng
         if nt:
             iou = [wh_iou(x, gwh) for x in layer.anchor_vec]
             iou, a = torch.stack(iou, 0).max(0)  # best iou and anchor
@@ -304,8 +326,8 @@ def build_targets(model, targets):
 
         # Indices
         b, c = t[:, :2].long().t()  # target image, class
-        gxy = t[:, 2:4] * layer.nG
-        gi, gj = gxy.long().t()  # grid_i, grid_j
+        gxy = t[:, 2:4] * layer.ng  # grid x, y
+        gi, gj = gxy.long().t()  # grid x, y indices
         indices.append((b, a, gj, gi))
 
         # XY coordinates
@@ -318,7 +340,7 @@ def build_targets(model, targets):
         # Class
         tcls.append(c)
         if c.shape[0]:
-            assert c.max() <= layer.nC, 'Target classes exceed model classes'
+            assert c.max() <= layer.nc, 'Target classes exceed model classes'
 
     return txy, twh, tcls, indices
 
@@ -353,7 +375,7 @@ def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.5):
         pred[:, 4] *= class_conf
 
         # Select only suitable predictions
-        i = (pred[:, 4] > conf_thres) & (pred[:, 2:4] > min_wh).all(1) & (torch.isnan(pred).any(1) == 0)
+        i = (pred[:, 4] > conf_thres) & (pred[:, 2:4] > min_wh).all(1) & torch.isfinite(pred).all(1)
         pred = pred[i]
 
         # If none are remaining => process next image
@@ -378,12 +400,12 @@ def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.5):
         nms_style = 'MERGE'  # 'OR' (default), 'AND', 'MERGE' (experimental)
         for c in pred[:, -1].unique():
             dc = pred[pred[:, -1] == c]  # select class c
-            dc = dc[:min(len(dc), 100)]  # limit to first 100 boxes: https://github.com/ultralytics/yolov3/issues/117
-
-            # No NMS required if only 1 prediction
-            if len(dc) == 1:
-                det_max.append(dc)
+            n = len(dc)
+            if n == 1:
+                det_max.append(dc)  # No NMS required if only 1 prediction
                 continue
+            elif n > 100:
+                dc = dc[:100]  # limit to first 100 boxes: https://github.com/ultralytics/yolov3/issues/117
 
             # Non-maximum suppression
             if nms_style == 'OR':  # default
@@ -421,6 +443,17 @@ def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.5):
                     det_max.append(dc[:1])
                     dc = dc[i == 0]
 
+            elif nms_style == 'SOFT':  # soft-NMS https://arxiv.org/abs/1704.04503
+                sigma = 0.5  # soft-nms sigma parameter
+                while len(dc):
+                    if len(dc) == 1:
+                        det_max.append(dc)
+                        break
+                    det_max.append(dc[:1])
+                    iou = bbox_iou(dc[0], dc[1:])  # iou with other boxes
+                    dc = dc[1:]
+                    dc[:, 4] *= torch.exp(-iou ** 2 / sigma)  # decay confidences
+
         if len(det_max):
             det_max = torch.cat(det_max)  # concatenate
             output[image_i] = det_max[(-det_max[:, 4]).argsort()]  # sort
@@ -442,12 +475,12 @@ def strip_optimizer_from_checkpoint(filename='weights/best.pt'):
 
 def coco_class_count(path='../coco/labels/train2014/'):
     # Histogram of occurrences per class
-    nC = 80  # number classes
-    x = np.zeros(nC, dtype='int32')
+    nc = 80  # number classes
+    x = np.zeros(nc, dtype='int32')
     files = sorted(glob.glob('%s/*.*' % path))
     for i, file in enumerate(files):
         labels = np.loadtxt(file, dtype=np.float32).reshape(-1, 5)
-        x += np.bincount(labels[:, 0].astype('int32'), minlength=nC)
+        x += np.bincount(labels[:, 0].astype('int32'), minlength=nc)
         print(i, len(files))
 
 
@@ -502,13 +535,14 @@ def plot_images(imgs, targets, fname='images.jpg'):
     targets = targets.cpu().numpy()
 
     fig = plt.figure(figsize=(10, 10))
-    img_size = imgs.shape[3]
-    bs = imgs.shape[0]  # batch size
-    sp = np.ceil(bs ** 0.5)  # subplots
+    bs, _, h, w = imgs.shape  # batch size, _, height, width
+    ns = np.ceil(bs ** 0.5)  # number of subplots
 
     for i in range(bs):
-        boxes = xywh2xyxy(targets[targets[:, 0] == i, 2:6]).T * img_size
-        plt.subplot(sp, sp, i + 1).imshow(imgs[i].transpose(1, 2, 0))
+        boxes = xywh2xyxy(targets[targets[:, 0] == i, 2:6]).T
+        boxes[[0, 2]] *= w
+        boxes[[1, 3]] *= h
+        plt.subplot(ns, ns, i + 1).imshow(imgs[i].transpose(1, 2, 0))
         plt.plot(boxes[[0, 2, 2, 0, 0]], boxes[[1, 1, 3, 3, 1]], '.-')
         plt.axis('off')
     fig.tight_layout()
@@ -531,6 +565,6 @@ def plot_results(start=0, stop=0):  # from utils.utils import *; plot_results()
         for i in range(10):
             ax[i].plot(x, results[i, x], marker='.', label=f.replace('.txt', ''))
             ax[i].set_title(s[i])
-    ax[0].legend()
     fig.tight_layout()
+    ax[4].legend()
     fig.savefig('results.png', dpi=300)

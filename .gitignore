@@ -20,11 +20,16 @@
 
 data/*
 !data/samples/zidane.jpg
+!data/samples/bus.jpg
 !data/coco.names
 !data/coco_paper.names
 !data/coco.data
 !data/coco_*.data
 !data/coco_*.txt
+!data/coco_*.txt
+!data/trainvalno5k.shapes
+!data/5k.shapes
+!data/5k.txt
 
 pycocotools/*
 results*.txt
@@ -132,6 +137,7 @@ celerybeat-schedule
 .venv
 venv/
 ENV/
+.vscode/*
 
 # Spyder project settings
 .spyderproject
@@ -232,3 +238,5 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
+.github/ISSUE_TEMPLATE/bug_report.md
+.github/ISSUE_TEMPLATE/feature_request.md

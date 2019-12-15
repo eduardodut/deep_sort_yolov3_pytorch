@@ -24,7 +24,7 @@ def test(
         device = torch_utils.select_device()
 
         # Initialize model
-        model = Darknet(cfg, img_size).to(device)
+        model = Darknet(cfg).to(device)
 
         # Load weights
         if weights.endswith('.pt'):  # pytorch format
@@ -44,7 +44,7 @@ def test(
     names = load_classes(data_cfg['names'])  # class names
 
     # Dataloader
-    dataset = LoadImagesAndLabels(test_path, img_size=img_size)
+    dataset = LoadImagesAndLabels(test_path, img_size, batch_size)
     dataloader = DataLoader(dataset,
                             batch_size=batch_size,
                             num_workers=4,
@@ -60,6 +60,7 @@ def test(
     for batch_i, (imgs, targets, paths, shapes) in enumerate(tqdm(dataloader, desc='Computing mAP')):
         targets = targets.to(device)
         imgs = imgs.to(device)
+        _, _, height, width = imgs.shape  # batch size, channels, height, width
 
         # Plot images with bounding boxes
         if batch_i == 0 and not os.path.exists('test_batch0.jpg'):
@@ -93,7 +94,7 @@ def test(
                 # [{"image_id": 42, "category_id": 18, "bbox": [258.15, 41.29, 348.26, 243.78], "score": 0.236}, ...
                 image_id = int(Path(paths[si]).stem.split('_')[-1])
                 box = pred[:, :4].clone()  # xyxy
-                scale_coords(img_size, box, shapes[si])  # to original shape
+                scale_coords(imgs[si].shape[1:], box, shapes[si])  # to original shape
                 box = xyxy2xywh(box)  # xywh
                 box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
                 for di, d in enumerate(pred):
@@ -108,7 +109,12 @@ def test(
             correct = [0] * len(pred)
             if nl:
                 detected = []
-                tbox = xywh2xyxy(labels[:, 1:5]) * img_size  # target boxes
+                tcls_tensor = labels[:, 0]
+
+                # target boxes
+                tbox = xywh2xyxy(labels[:, 1:5])
+                tbox[:, [0, 2]] *= width
+                tbox[:, [1, 3]] *= height
 
                 # Search for correct predictions
                 for i, (*pbox, pconf, pcls_conf, pcls) in enumerate(pred):
@@ -122,12 +128,13 @@ def test(
                         continue
 
                     # Best iou, index between pred and targets
-                    iou, bi = bbox_iou(pbox, tbox).max(0)
+                    m = (pcls == tcls_tensor).nonzero().view(-1)
+                    iou, bi = bbox_iou(pbox, tbox[m]).max(0)
 
                     # If iou > threshold and class is correct mark as correct
-                    if iou > iou_thres and bi not in detected:  # and pcls == tcls[bi]:
+                    if iou > iou_thres and m[bi] not in detected:  # and pcls == tcls[bi]:
                         correct[i] = 1
-                        detected.append(bi)
+                        detected.append(m[bi])
 
             # Append statistics (correct, conf, pcls, tcls)
             stats.append((correct, pred[:, 4].cpu(), pred[:, 6].cpu(), tcls))
@@ -169,22 +176,25 @@ def test(
         map = cocoEval.stats[1]  # update mAP to pycocotools mAP
 
     # Return results
-    return mp, mr, map, mf1, loss / len(dataloader)
+    maps = np.zeros(nc) + map
+    for i, c in enumerate(ap_class):
+        maps[c] = ap[i]
+    return (mp, mr, map, mf1, loss / len(dataloader)), maps
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--batch-size', type=int, default=32, help='size of each image batch')
-    parser.add_argument('--cfg', type=str, default='cfg/yolov3-spp.cfg', help='cfg file path')
-    parser.add_argument('--data-cfg', type=str, default='data/coco.data', help='coco.data file path')
+    parser.add_argument('--batch-size', type=int, default=3, help='size of each image batch')
+    parser.add_argument('--cfg', type=str, default='cfg/yolov3-1cls.cfg', help='cfg file path')
+    parser.add_argument('--data-cfg', type=str, default='data/voc_small.data', help='coco.data file path')
     parser.add_argument('--weights', type=str, default='weights/yolov3-spp.weights', help='path to weights file')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='iou threshold required to qualify as detected')
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
     parser.add_argument('--nms-thres', type=float, default=0.5, help='iou threshold for non-maximum suppression')
     parser.add_argument('--save-json', action='store_true', help='save a cocoapi-compatible JSON results file')
-    parser.add_argument('--img-size', type=int, default=416, help='size of each image dimension')
+    parser.add_argument('--img-size', type=int, default=416, help='inference size (pixels)')
     opt = parser.parse_args()
-    print(opt, end='\n\n')
+    print(opt)
 
     with torch.no_grad():
         mAP = test(

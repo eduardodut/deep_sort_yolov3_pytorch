@@ -18,7 +18,7 @@
 
 # Introduction
 
-This directory contains python software and an iOS App developed by Ultralytics LLC, and **is freely available for redistribution under the GPL-3.0 license**. For more information please visit https://www.ultralytics.com.
+This directory contains PyTorch YOLOv3 software and an iOS App developed by Ultralytics LLC, and **is freely available for redistribution under the GPL-3.0 license**. For more information please visit https://www.ultralytics.com.
 
 # Description
 
@@ -114,6 +114,20 @@ Run `detect.py` with `webcam=True` to show a live webcam feed.
 
 - Darknet `*.weights` format: https://pjreddie.com/media/files/yolov3.weights
 - PyTorch `*.pt` format: https://drive.google.com/drive/folders/1uxgUBemJVw9wZsdpboYbzUN4bcRhsuAI
+
+## Darknet Conversion
+
+```bash
+git clone https://github.com/ultralytics/yolov3 && cd yolov3
+
+# convert darknet cfg/weights to pytorch model
+python3  -c "from models import *; convert('cfg/yolov3-spp.cfg', 'weights/yolov3-spp.weights')"
+Success: converted 'weights/yolov3-spp.weights' to 'converted.pt'
+
+# convert cfg/pytorch model to darknet weights
+python3  -c "from models import *; convert('cfg/yolov3-spp.cfg', 'weights/yolov3-spp.pt')"
+Success: converted 'weights/yolov3-spp.pt' to 'converted.weights'
+```
 
 # mAP
 
