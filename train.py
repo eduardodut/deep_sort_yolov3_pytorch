@@ -17,28 +17,28 @@ from torchsummary import summary
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # Hyperparameters: train.py --evolve --epochs 2 --img-size 320, Metrics: 0.204      0.302      0.175      0.234 (square smart)
-# hyp = {'xy': 0.167,  # xy loss gain
-#        'wh': 0.09339,  # wh loss gain
-#        'cls': 0.03868,  # cls loss gain
-#        'conf': 4.546,  # conf loss gain
-#        'iou_t': 0.2454,  # iou target-anchor training threshold
-#        'lr0': 0.000198,  # initial learning rate
-#        'lrf': -5.,  # final learning rate = lr0 * (10 ** lrf)
-#        'momentum': 0.95,  # SGD momentum
-#        'weight_decay': 0.0007838}  # optimizer weight decay
+hyp = {'xy': 0.167,  # xy loss gain
+       'wh': 0.09339,  # wh loss gain
+       'cls': 0.03868,  # cls loss gain
+       'conf': 4.546,  # conf loss gain
+       'iou_t': 0.2454,  # iou target-anchor training threshold
+       'lr0': 0.000198,  # initial learning rate
+       'lrf': -5.,  # final learning rate = lr0 * (10 ** lrf)
+       'momentum': 0.95,  # SGD momentum
+       'weight_decay': 0.0007838}  # optimizer weight decay
 
 # Hyperparameters: Original, Metrics: 0.172      0.304      0.156      0.205 (square)
-hyp = {
-    'xy': 0.5,  # xy loss gain
-    'wh': 0.0625,  # wh loss gain
-    'cls': 0.0625,  # cls loss gain
-    'conf': 4,  # conf loss gain
-    'iou_t': 0.1,  # iou target-anchor training threshold
-    'lr0': 0.001,  # initial learning rate
-    'lrf': -5.,  # final learning rate = lr0 * (10 ** lrf)
-    'momentum': 0.9,  # SGD momentum
-    'weight_decay': 0.0005
-}  # optimizer weight decay
+# hyp = {
+#     'xy': 0.5,  # xy loss gain
+#     'wh': 0.0625,  # wh loss gain
+#     'cls': 0.0625,  # cls loss gain
+#     'conf': 4,  # conf loss gain
+#     'iou_t': 0.1,  # iou target-anchor training threshold
+#     'lr0': 0.001,  # initial learning rate
+#     'lrf': -5.,  # final learning rate = lr0 * (10 ** lrf)
+#     'momentum': 0.9,  # SGD momentum
+#     'weight_decay': 0.0005
+# }  # optimizer weight decay
 
 # Hyperparameters: train.py --evolve --epochs 2 --img-size 320, Metrics: 0.225      0.251      0.145      0.218 (rect)
 # hyp = {'xy': 0.4499,  # xy loss gain
