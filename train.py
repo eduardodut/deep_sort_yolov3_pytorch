@@ -140,8 +140,8 @@ def train(
             cutoff = load_darknet_weights(model,
                                           weights + 'yolov3-tiny.conv.15')
         else:
-            cutoff = 0
-            # cutoff = load_darknet_weights(model, weights + 'darknet53.conv.74')
+            # cutoff = 0
+            cutoff = load_darknet_weights(model, weights + 'darknet53.conv.74')
 
     # Scheduler https://github.com/ultralytics/yolov3/issues/238
     # lf = lambda x: 1 - x / epochs  # linear ramp to zero
