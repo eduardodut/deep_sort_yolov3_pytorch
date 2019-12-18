@@ -25,12 +25,15 @@ class InferYOLOv3(object):
         self.img_size = img_size
         self.weight_path = weight_path
         # self.img_file = img_file
+        self.device = device
         self.model = Darknet(cfg).to(device)
         self.model.load_state_dict(
             torch.load(weight_path, map_location=device)['model'])
         self.model.to(device).eval()
         self.classes = load_classes(parse_data_cfg(data_cfg)['names'])
         self.colors = [random.randint(0, 255) for _ in range(3)]
+        self.conf_thres = conf_thres
+        self.nms_thres = nms_thres
 
     def predict(self, im0):
         # singleDataloader = LoadSingleImages(img_file, img_size=img_size)
@@ -44,9 +47,9 @@ class InferYOLOv3(object):
 
         # TODO: how to get img and im0
 
-        img = torch.from_numpy(img).unsqueeze(0).to(device)
+        img = torch.from_numpy(img).unsqueeze(0).to(self.device)
         pred, _ = self.model(img)
-        det = non_max_suppression(pred, conf_thres, nms_thres)[0]
+        det = non_max_suppression(pred, self.conf_thres, self.nms_thres)[0]
 
         if det is not None and len(det) > 0:
             # Rescale boxes from 416 to true image size
@@ -71,7 +74,9 @@ class InferYOLOv3(object):
                 cls_confs.append(cls_conf)
                 cls_ids.append(cls_id)
                 # plot_one_box(xyxy, im0, label=label, color=colors)
-        return np.array(bboxes), np.array(cls_confs), np.array(cls_ids)
+            return np.array(bboxes), np.array(cls_confs), np.array(cls_ids)
+        else:
+            return None, None, None
 
     def plot_bbox(self, ori_img, boxes):
         img = ori_img

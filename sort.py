@@ -8,7 +8,7 @@ import numpy as np
 from predict import InferYOLOv3
 from utils.utils import xyxy2xywh
 from deep_sort import DeepSort
-from util.utils_sort import COLORS_10, draw_bboxes
+from utils.utils_sort import COLORS_10, draw_bboxes
 from sort.sort import *
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -32,7 +32,7 @@ class Detector(object):
                                  nms_thres=args.nms_thresh)
         # self.deepsort = DeepSort(args.deepsort_checkpoint)
         self.mot_tracker_sort = Sort()
-        self.class_names = self.yolo3.class_names
+        self.class_names = self.yolo3.classes
 
     def __enter__(self):
         assert os.path.isfile(self.args.VIDEO_PATH), "Error: path error"
@@ -116,13 +116,13 @@ def parse_args():
     parser.add_argument("VIDEO_PATH", type=str)
     parser.add_argument("--yolo_cfg",
                         type=str,
-                        default="uolov3/cfg/yolov3-1cls-d1.cfg")
+                        default="cfg/yolov3-1cls.cfg")
     parser.add_argument("--yolo_weights",
                         type=str,
-                        default="uolov3/weights/yolov3-1cls-d1.pt")
+                        default="./weights/best.pt")
     parser.add_argument("--yolo_names",
                         type=str,
-                        default="YOLOv3/cfg/coco.names")
+                        default="cfg/coco.names")
     parser.add_argument("--conf_thresh", type=float, default=0.5)
     parser.add_argument("--nms_thresh", type=float, default=0.4)
     parser.add_argument("--deepsort_checkpoint",
@@ -137,7 +137,7 @@ def parse_args():
     parser.add_argument("--save_path", type=str, default="demo.avi")
     parser.add_argument("--data_cfg",
                         type=str,
-                        default="uolov3/data/voc_small.data")
+                        default="data/voc_small.data")
     parser.add_argument("--img_size", type=int, default=416, help="img size")
 
     return parser.parse_args()
