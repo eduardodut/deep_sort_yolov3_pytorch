@@ -5,10 +5,10 @@ import argparse
 import torch
 import numpy as np
 
-from uolov3.inferYOLO import InferYOLOv3
-from uolov3.utils.utils import xyxy2xywh
+from predict import InferYOLOv3
+from utils.utils import xyxy2xywh
 from deep_sort import DeepSort
-from util import COLORS_10, draw_bboxes
+from util.utils_sort import COLORS_10, draw_bboxes
 from sort.sort import *
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
