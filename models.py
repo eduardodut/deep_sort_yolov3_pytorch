@@ -19,7 +19,6 @@ def create_modules(module_defs, img_size, arc):
 
     for i, mdef in enumerate(module_defs):
         modules = nn.Sequential()
-
         if mdef['type'] == 'convolutional':
             bn = int(mdef['batch_normalize'])
             filters = int(mdef['filters'])
@@ -42,7 +41,7 @@ def create_modules(module_defs, img_size, arc):
                 modules.add_module('activation', Swish())
         elif mdef['type'] == 'cbam':
             ca = ChannelAttention(in_planes=output_filters[-1])
-            sa = SpatialAttention()
+            sa = SpatialAttention(kernel_size=int(mdef['size']))
             modules.add_module("channelAttention", ca)
             modules.add_module("SpatialAttention", sa)
 
@@ -285,6 +284,7 @@ class Darknet(nn.Module):
         output = []
 
         for i, (mdef, module) in enumerate(zip(self.module_defs, self.module_list)):
+            # print(i, '===', mdef['type'])
             mtype = mdef['type']
             if mtype in ['convolutional', 'upsample', 'maxpool']:
                 x = module(x)
@@ -309,7 +309,7 @@ class Darknet(nn.Module):
                 sa = module[1]
                 x = ca(x) * x
                 x = sa(x) * x
-                
+
             layer_outputs.append(x if i in self.routs else [])
 
         if self.training:
