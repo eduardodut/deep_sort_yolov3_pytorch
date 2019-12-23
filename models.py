@@ -1,5 +1,6 @@
 import torch.nn.functional as F
 
+import torch.nn as nn
 from utils.google_utils import *
 from utils.parse_config import *
 from utils.utils import *
@@ -39,6 +40,11 @@ def create_modules(module_defs, img_size, arc):
                 # modules.add_module('activation', nn.PReLU(num_parameters=1, init=0.10))
             elif mdef['activation'] == 'swish':
                 modules.add_module('activation', Swish())
+        elif mdef['type'] == 'cbam':
+            ca = ChannelAttention(in_planes=output_filters[-1])
+            sa = SpatialAttention()
+            modules.add_module("channelAttention", ca)
+            modules.add_module("SpatialAttention", sa)
 
         elif mdef['type'] == 'maxpool':
             size = int(mdef['size'])
@@ -69,7 +75,6 @@ def create_modules(module_defs, img_size, arc):
             # torch.Size([16, 128, 104, 104])
             # torch.Size([16, 64, 208, 208]) <-- # stride 2 interpolate dimensions 2 and 3 to cat with prior layer
             pass
-
         elif mdef['type'] == 'yolo':
             yolo_index += 1
             mask = [int(x) for x in mdef['mask'].split(',')]  # anchor mask
@@ -130,6 +135,43 @@ class SwishImplementation(torch.autograd.Function):
 class MemoryEfficientSwish(nn.Module):
     def forward(self, x):
         return SwishImplementation.apply(x)
+
+
+class SpatialAttention(nn.Module):
+    def __init__(self, kernel_size=7):
+        super(SpatialAttention, self).__init__()
+
+        assert kernel_size in (3, 7), 'kernel size must be 3 or 7'
+        padding = 3 if kernel_size == 7 else 1
+
+        self.conv1 = nn.Conv2d(2, 1, kernel_size, padding=padding, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+        x = torch.cat([avg_out, max_out], dim=1)
+        x = self.conv1(x)
+        return self.sigmoid(x)
+
+
+class ChannelAttention(nn.Module):
+    def __init__(self, in_planes, ratio=16):
+        super(ChannelAttention, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+        self.fc1   = nn.Conv2d(in_planes, in_planes // 16, 1, bias=False)
+        self.relu1 = nn.ReLU()
+        self.fc2   = nn.Conv2d(in_planes // 16, in_planes, 1, bias=False)
+
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        avg_out = self.fc2(self.relu1(self.fc1(self.avg_pool(x))))
+        max_out = self.fc2(self.relu1(self.fc1(self.max_pool(x))))
+        out = avg_out + max_out
+        return self.sigmoid(out)
 
 
 class Swish(nn.Module):
@@ -262,6 +304,12 @@ class Darknet(nn.Module):
             elif mtype == 'yolo':
                 x = module(x, img_size)
                 output.append(x)
+            elif mtype == 'cbam':
+                ca = module[0]
+                sa = module[1]
+                x = ca(x) * x
+                x = sa(x) * x
+                
             layer_outputs.append(x if i in self.routs else [])
 
         if self.training:
