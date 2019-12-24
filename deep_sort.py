@@ -99,15 +99,16 @@ def parse_args():
     parser.add_argument("VIDEO_PATH", type=str)
     parser.add_argument("--yolo_cfg",
                         type=str,
-                        default="cfg/yolov3-1cls.cfg"
+                        default="cfg/yolov3-attention.cfg"
                         )  #"uolov3/cfg/yolov3-1cls-d1.cfg")
-    parser.add_argument("--yolo_weights",
-                        type=str,
-                        default="weights/best.pt"
-                        )  #"uolov3/weights/yolov3-1cls-d1.pt")
+    parser.add_argument(
+        "--yolo_weights",
+        type=str,
+        default="weights/12-24-dataset4-yolov3-attention/best.pt"
+    )  #"uolov3/weights/yolov3-1cls-d1.pt")
     parser.add_argument("--yolo_names",
                         type=str,
-                        default="cfg/voc_small.names")
+                        default="data/cow.names")
     parser.add_argument("--conf_thresh", type=float, default=0.5)
     parser.add_argument("--nms_thresh", type=float, default=0.4)
     parser.add_argument("--deepsort_checkpoint",
@@ -122,7 +123,7 @@ def parse_args():
     parser.add_argument("--save_path", type=str, default="demo.avi")
     parser.add_argument("--data_cfg",
                         type=str,
-                        default="data/voc_small.data")
+                        default="data/dataset4.data")
     parser.add_argument("--img_size", type=int, default=416, help="img size")
 
     return parser.parse_args()
