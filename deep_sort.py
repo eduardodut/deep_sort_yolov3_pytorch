@@ -99,11 +99,11 @@ def parse_args():
     parser.add_argument("VIDEO_PATH", type=str)
     parser.add_argument("--yolo_cfg",
                         type=str,
-                        default="cfg/yolov3-1cls.cfg"
+                        default="cfg/yolov3-se.cfg"
                         )  #"uolov3/cfg/yolov3-1cls-d1.cfg")
     parser.add_argument("--yolo_weights",
                         type=str,
-                        default="weights/12-25-dataset4-yolov3-1cls/best.pt"
+                        default="weights/best.pt"
                         )  #"uolov3/weights/yolov3-1cls-d1.pt")
     parser.add_argument("--yolo_names",
                         type=str,

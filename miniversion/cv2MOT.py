@@ -1,0 +1,226 @@
+import glob
+import os
+import sys
+import time
+from random import randint
+
+import cv2
+import numpy as np
+import torch
+from PIL import Image
+
+from models import *
+from utils.datasets import *
+from utils.utils import *
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+trackerTypes = [
+    'BOOSTING', 'MIL', 'KCF', 'TLD', 'MEDIANFLOW', 'GOTURN', 'MOSSE', 'CSRT'
+]
+
+
+def createTrackerByName(trackerType):
+    # Create a tracker based on tracker name
+    if trackerType == trackerTypes[0]:
+        tracker = cv2.TrackerBoosting_create()
+    elif trackerType == trackerTypes[1]:
+        tracker = cv2.TrackerMIL_create()
+    elif trackerType == trackerTypes[2]:
+        tracker = cv2.TrackerKCF_create()
+    elif trackerType == trackerTypes[3]:
+        tracker = cv2.TrackerTLD_create()
+    elif trackerType == trackerTypes[4]:
+        tracker = cv2.TrackerMedianFlow_create()
+    elif trackerType == trackerTypes[5]:
+        tracker = cv2.TrackerGOTURN_create()
+    elif trackerType == trackerTypes[6]:
+        tracker = cv2.TrackerMOSSE_create()
+    elif trackerType == trackerTypes[7]:
+        tracker = cv2.TrackerCSRT_create()
+    else:
+        tracker = None
+        print('Incorrect tracker name')
+        print('Available trackers are:')
+        for t in trackerTypes:
+            print(t)
+
+    return tracker
+
+
+class InferYOLOv3(object):
+    def __init__(self,
+                 cfg,
+                 img_size,
+                 weight_path,
+                 data_cfg,
+                 device,
+                 conf_thres=0.5,
+                 nms_thres=0.5):
+        self.cfg = cfg
+        self.img_size = img_size
+        self.weight_path = weight_path
+        # self.img_file = img_file
+        self.device = device
+        self.model = Darknet(cfg).to(device)
+        self.model.load_state_dict(
+            torch.load(weight_path, map_location=device)['model'])
+        self.model.to(device).eval()
+        self.classes = load_classes(parse_data_cfg(data_cfg)['names'])
+        self.colors = [random.randint(0, 255) for _ in range(3)]
+        self.conf_thres = conf_thres
+        self.nms_thres = nms_thres
+
+    def predict(self, im0):
+        # singleDataloader = LoadSingleImages(img_file, img_size=img_size)
+        # path, img, im0 = singleDataloader.__next__()
+
+        img, _, _ = letterbox(im0, new_shape=self.img_size)
+
+        img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB
+        img = np.ascontiguousarray(img, dtype=np.float32)  # uint8 to float32
+        img /= 255.0
+
+        # TODO: how to get img and im0
+
+        img = torch.from_numpy(img).unsqueeze(0).to(self.device)
+        pred, _ = self.model(img)
+        det = non_max_suppression(pred, self.conf_thres, self.nms_thres)[0]
+
+        if det is not None and len(det) > 0:
+            # Rescale boxes from 416 to true image size
+            det[:, :4] = scale_coords(img.shape[2:], det[:, :4],
+                                      im0.shape).round()
+
+            # Print results to screen
+            print('%gx%g ' % img.shape[2:], end='')  # print image size
+            for c in det[:, -1].unique():
+                n = (det[:, -1] == c).sum()
+                print('%g %ss' % (n, self.classes[int(c)]), end=', ')
+
+            img = np.array(img.cpu())
+            # Draw bounding boxes and labels of detections
+
+            bboxes, confs, cls_confs, cls_ids = [], [], [], []
+
+            for *xyxy, conf, cls_conf, cls_id in det:
+                # label = '%s %.2f' % (classes[int(cls_id)], conf)
+                bboxes.append(xyxy)
+                confs.append(conf)
+                cls_confs.append(cls_conf)
+                cls_ids.append(cls_id)
+                # plot_one_box(xyxy, im0, label=label, color=colors)
+            return np.array(bboxes), np.array(cls_confs), np.array(cls_ids)
+        else:
+            return None, None, None
+
+    def plot_bbox(self, ori_img, boxes):
+        img = ori_img
+        height, width = img.shape[:2]
+        for box in boxes:
+            # get x1 x2 x3 x4
+            x1 = int(round(((box[0] - box[2] / 2.0) * width).item()))
+            y1 = int(round(((box[1] - box[3] / 2.0) * height).item()))
+            x2 = int(round(((box[0] + box[2] / 2.0) * width).item()))
+            y2 = int(round(((box[1] + box[3] / 2.0) * height).item()))
+            cls_conf = box[5]
+            cls_id = box[6]
+            # import random
+            # color = random.choices(range(256),k=3)
+            color = [int(x) for x in np.random.randint(256, size=3)]
+            # put texts and rectangles
+            img = cv2.putText(img, self.class_names[cls_id], (x1, y1),
+                              cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+            img = cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+        return img
+
+    def plot_one_box(x, img, color=None, label=None, line_thickness=None):
+        # Plots one bounding box on image img
+        tl = line_thickness or round(
+            0.002 * max(img.shape[0:2])) + 1  # line thickness
+        color = color or [random.randint(0, 255) for _ in range(3)]
+        c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
+        cv2.rectangle(img, c1, c2, color, thickness=tl)
+        if label:
+            tf = max(tl - 1, 1)  # font thickness
+            t_size = cv2.getTextSize(label, 0, fontScale=tl / 3,
+                                     thickness=tf)[0]
+            c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
+            cv2.rectangle(img, c1, c2, color, -1)  # filled
+            cv2.putText(img,
+                        label, (c1[0], c1[1] - 2),
+                        0,
+                        tl / 3, [225, 255, 255],
+                        thickness=tf,
+                        lineType=cv2.LINE_AA)
+
+
+if __name__ == "__main__":
+    #################################################
+    cfg = './yolov3-cbam.cfg'
+    img_size = 416
+    weight_path = './best.pt'
+    img_file = "./test.jpg"  #"./images/train2014/0137-2112.jpg"
+    data_cfg = "./dataset1.data"
+    conf_thres = 0.5
+    nms_thres = 0.5
+    device = torch_utils.select_device()
+    trackerType = "CSRT"
+    videoPath = "./test.mp4"
+    #################################################
+    yolo = InferYOLOv3(cfg, img_size, weight_path, data_cfg, device)
+    cap = cv2.VideoCapture(videoPath)
+    success, frame = cap.read()
+
+    # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    frame = cv2.resize(frame, (1280,720))
+
+    if not success:
+        print('Failed to read video')
+        sys.exit(1)
+    bbox_xcycwh, cls_conf, cls_ids = yolo.predict(frame)
+
+    bboxes = []
+    colors = []
+    for i in range(len(bbox_xcycwh)):
+        bboxes.append(tuple(int(bbox_xcycwh[i][j].tolist()) for j in range(4)))
+        colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+
+
+    print('Selected bounding boxes {}'.format(bboxes))
+
+
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter("out.avi", fourcc, 24,
+                          (frame.shape[1], frame.shape[0]))
+    multiTracker = cv2.MultiTracker_create()
+
+    # Initialize MultiTracker
+    for bbox in bboxes:
+        multiTracker.add(createTrackerByName(trackerType), frame, bbox)
+
+    cnt = 0
+    # Process video and track objects
+    while cap.isOpened():
+        success, frame = cap.read()
+        cnt += 1
+        print(cnt)
+        if not success:
+            break
+
+        # get updated location of objects in subsequent frames
+        success, boxes = multiTracker.update(frame)
+
+        # draw tracked objects
+        for i, newbox in enumerate(boxes):
+            p1 = (int(newbox[0]), int(newbox[1]))
+            p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
+            cv2.rectangle(frame, p1, p2, colors[i], 2, 1)
+        out.write(frame)
+        # show frame
+        # cv2.imshow('MultiTracker', frame)
+
+        # quit on ESC button
+        if cv2.waitKey(1) & 0xFF == 27:  # Esc pressed
+            break
