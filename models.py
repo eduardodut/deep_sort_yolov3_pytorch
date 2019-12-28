@@ -58,9 +58,9 @@ def create_modules(module_defs, img_size, arc):
             avg_pool = nn.AdaptiveAvgPool2d(1)
             fc = nn.Sequential(
                 nn.Linear(output_filters[-1],
-                          output_filters[-1] // int(mdef['reduction']),
+                          output_filters[-1] // int(mdef['size']),
                           bias=False), nn.ReLU(inplace=True),
-                nn.Linear(output_filters[-1] // int(mdef['reduction']),
+                nn.Linear(output_filters[-1] // int(mdef['size']),
                           output_filters[-1],
                           bias=False), nn.Sigmoid())
             modules.add_module("avgPooling", avg_pool)
