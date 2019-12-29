@@ -1,3 +1,14 @@
+# -*- encoding: utf-8 -*-
+'''
+@File    :   predict.py
+@Time    :   2019/12/29 16:33:04
+@Author  :   pprp
+@Contact :   1115957667@qq.com
+@License :   (C)Copyright 2018-2019
+@Desc    :   None
+'''
+
+# here put the import lib
 import torch
 import time
 import cv2

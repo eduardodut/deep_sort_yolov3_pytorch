@@ -12,12 +12,25 @@ from PIL import Image
 from models import *
 from utils.datasets import *
 from utils.utils import *
+# from utils.utils import xyxy2xywh
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 trackerTypes = [
     'BOOSTING', 'MIL', 'KCF', 'TLD', 'MEDIANFLOW', 'GOTURN', 'MOSSE', 'CSRT'
 ]
+
+
+def coordTrans(x):
+    # from x1,y1,x2,y2 to x1,y1,w,h
+    # Convert bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
+    y = torch.zeros_like(x) if isinstance(x,
+                                          torch.Tensor) else np.zeros_like(x)
+    y[:, 0] = x[:, 0]  #(x[:, 0] + x[:, 2]) / 2
+    y[:, 1] = x[:, 1]  #(x[:, 1] + x[:, 3]) / 2
+    y[:, 2] = x[:, 2] - x[:, 0]
+    y[:, 3] = x[:, 3] - x[:, 1]
+    return y
 
 
 def createTrackerByName(trackerType):
@@ -165,31 +178,48 @@ if __name__ == "__main__":
     conf_thres = 0.5
     nms_thres = 0.5
     device = torch_utils.select_device()
-    trackerType = "CSRT"
-    videoPath = "./test.mp4"
+    trackerType = "KCF"
+    videoPath = "./demo.mp4"
+    display_width = 800
+    display_height = 600
     #################################################
-    yolo = InferYOLOv3(cfg, img_size, weight_path, data_cfg, device)
+    yolo = InferYOLOv3(cfg,
+                       img_size,
+                       weight_path,
+                       data_cfg,
+                       device,
+                       conf_thres=conf_thres,
+                       nms_thres=nms_thres)
     cap = cv2.VideoCapture(videoPath)
-    success, frame = cap.read()
+    _, frame = cap.read()
 
-    # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-    frame = cv2.resize(frame, (1280,720))
-
-    if not success:
-        print('Failed to read video')
-        sys.exit(1)
-    bbox_xcycwh, cls_conf, cls_ids = yolo.predict(frame)
-
+    bbox_xyxy, cls_conf, cls_ids = yolo.predict(frame)
+    print("Shape of Frame:", frame.shape)
+    print("Using %s algorithm." % trackerType)
     bboxes = []
     colors = []
-    for i in range(len(bbox_xcycwh)):
-        bboxes.append(tuple(int(bbox_xcycwh[i][j].tolist()) for j in range(4)))
-        colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+    if bbox_xyxy is not None:
+        for i in range(len(bbox_xyxy)):
+            # we need left, top, w, h
+            bbox_cxcywh = coordTrans(bbox_xyxy)
+            bboxes.append(
+                tuple(int(bbox_cxcywh[i][j].tolist()) for j in range(4)))
+            colors.append((randint(64, 255), randint(64,
+                                                     255), randint(64, 255)))
 
+    print('Selected bounding boxes {}[x1,y1,w,h]'.format(bboxes))
 
-    print('Selected bounding boxes {}'.format(bboxes))
+    del yolo
 
+    # '''
+    # test for the first image
+    # '''
+
+    # for i, bbox in enumerate(bboxes):
+    #     p1 = (int(bbox[0]), int(bbox[1]))
+    #     p2 = (int(bbox[0]+bbox[2]), int(bbox[1]+bbox[3]))
+    #     cv2.rectangle(frame, p1, p2, colors[i], 2, 1)
+    # cv2.imwrite("./test_output.jpg", frame)
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter("out.avi", fourcc, 24,
@@ -199,13 +229,21 @@ if __name__ == "__main__":
     # Initialize MultiTracker
     for bbox in bboxes:
         multiTracker.add(createTrackerByName(trackerType), frame, bbox)
+    # cv2.namedWindow("test", cv2.WINDOW_NORMAL)
+    # cv2.resizeWindow("test", display_width, display_height)
 
     cnt = 0
+
     # Process video and track objects
     while cap.isOpened():
         success, frame = cap.read()
         cnt += 1
-        print(cnt)
+        print(cnt, end='\r')
+        sys.stdout.flush()
+
+        if cnt > 1000:
+            break
+
         if not success:
             break
 
@@ -214,13 +252,16 @@ if __name__ == "__main__":
 
         # draw tracked objects
         for i, newbox in enumerate(boxes):
+            # x1,y1,w,h =
             p1 = (int(newbox[0]), int(newbox[1]))
-            p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
+            p2 = (int(newbox[2]+newbox[0]), int(newbox[1]+newbox[3]))
             cv2.rectangle(frame, p1, p2, colors[i], 2, 1)
         out.write(frame)
         # show frame
         # cv2.imshow('MultiTracker', frame)
 
         # quit on ESC button
-        if cv2.waitKey(1) & 0xFF == 27:  # Esc pressed
-            break
+        # if cv2.waitKey(1) & 0xFF == 27:  # Esc pressed
+        #     break
+
+    os.system("ffmpeg -y -i out.avi -r 10 -b:a 32k output.mp4")
