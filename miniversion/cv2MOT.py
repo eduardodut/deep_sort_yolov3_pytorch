@@ -178,7 +178,7 @@ if __name__ == "__main__":
     conf_thres = 0.5
     nms_thres = 0.5
     device = torch_utils.select_device()
-    trackerType = "KCF"
+    trackerType = "BOOSTING"
     videoPath = "./demo.mp4"
     display_width = 800
     display_height = 600
@@ -263,5 +263,5 @@ if __name__ == "__main__":
         # quit on ESC button
         # if cv2.waitKey(1) & 0xFF == 27:  # Esc pressed
         #     break
-
+    os.system("mv out.avi %s.avi"%(trackerType))
     os.system("ffmpeg -y -i out.avi -r 10 -b:a 32k output.mp4")
