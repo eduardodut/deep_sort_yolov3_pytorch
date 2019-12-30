@@ -53,6 +53,11 @@ class Detector(object):
         frame_cnt = -1
         while self.vdo.grab():
             frame_cnt += 1
+
+            # skip frames every 3 frames
+            if frame_cnt % 3 == 0:
+                continue
+
             start = time.time()
             _, ori_im = self.vdo.retrieve()
             # im = cv2.cvtColor(ori_im, cv2.COLOR_BGR2RGB)
@@ -99,7 +104,7 @@ def parse_args():
     parser.add_argument("VIDEO_PATH", type=str)
     parser.add_argument("--yolo_cfg",
                         type=str,
-                        default="cfg/yolov3-se.cfg"
+                        default="cfg/yolov3-tiny-cbam.cfg"
                         )  #"uolov3/cfg/yolov3-1cls-d1.cfg")
     parser.add_argument("--yolo_weights",
                         type=str,
