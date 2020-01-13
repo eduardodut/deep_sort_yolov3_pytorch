@@ -104,7 +104,7 @@ def parse_args():
     parser.add_argument("VIDEO_PATH", type=str)
     parser.add_argument("--yolo_cfg",
                         type=str,
-                        default="cfg/darknet19-3l.cfg"
+                        default="cfg/csresnext50-panet-spp.cfg"
                         )  #"uolov3/cfg/yolov3-1cls-d1.cfg")
     parser.add_argument(
         "--yolo_weights",
