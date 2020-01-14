@@ -400,7 +400,7 @@ def train():
                     batch_size=batch_size,
                     img_size=opt.img_size,
                     model=model,
-                    conf_thres=0.001 if final_epoch else 0.1,  # 0.1 for speed
+                    conf_thres = 0.001 if final_epoch else 0.1,  # 0.1 for speed
                     save_json=final_epoch and is_coco,
                     dataloader=testloader,
                     testing=False)
