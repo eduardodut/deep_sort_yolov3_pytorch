@@ -11,7 +11,6 @@ from deep_sort import DeepSort
 from utils.utils_sort import COLORS_10, draw_bboxes
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
 '''
 mot results:
 ------------
@@ -24,6 +23,19 @@ frame, id, tlwh(%.2f),1,-1,-1,-1
 3,6,792.96,148.08,55.57,168.71,1,-1,-1,-1
 3,7,1732.55,448.65,73.69,223.20,1,-1,-1,-1
 '''
+
+# def xyxy2xywh(x):
+#     # Convert bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
+#     # y = torch.zeros_like(x) if isinstance(x,
+#     #                                       torch.Tensor) else np.zeros_like(x)
+#     y = [0, 0, 0, 0]
+
+#     y[0] = (x[0] + x[2]) / 2
+#     y[1] = (x[1] + x[3]) / 2
+#     y[2] = x[2] - x[0]
+#     y[3] = x[3] - x[1]
+#     return y
+
 
 class Detector(object):
     def __init__(self, args):
@@ -62,8 +74,12 @@ class Detector(object):
         if exc_type:
             print(exc_type, exc_value, exc_traceback)
 
-    def detect(self):
+    def detect(self, outfile=None):
         frame_cnt = -1
+
+        if outfile is not None:
+            f = open(outfile, 'w')
+
         while self.vdo.grab():
             frame_cnt += 1
 
@@ -96,6 +112,21 @@ class Detector(object):
                     bbox_xyxy = outputs[:, :4]
                     identities = outputs[:, -1]
                     ori_im = draw_bboxes(ori_im, bbox_xyxy, identities)
+
+                    #frame, id, tlwh(%.2f),1,-1,-1,-1
+                    if outfile is not None:
+                        box_xywh = xyxy2xywh(bbox_xyxy)
+
+                        # print("shape:",box_xywh.shape)
+
+                        for i in range(len(box_xywh)):
+                            # print(i)
+                            write_line = "%d,%d,%d,%d,%d,%d,1,-1,-1,-1\n" % (
+                                frame_cnt + 1, outputs[i,-1], int(box_xywh[i][0]), int(box_xywh[i][1]),
+                                int(box_xywh[i][2]), int(box_xywh[i][3]))
+                            # print(write_line)
+                            f.write(write_line)
+
             t2_end = time.time()
 
             end = time.time()
@@ -111,18 +142,22 @@ class Detector(object):
             if self.args.save_path:
                 self.output.write(ori_im)
 
+        if outfile is not None:
+            f.close()
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("VIDEO_PATH", type=str)
     parser.add_argument("--yolo_cfg",
                         type=str,
-                        default="cfg/csresnext50-panet-spp.cfg"
+                        default="cfg/yolov3-1cls.cfg"
                         )  #"uolov3/cfg/yolov3-1cls-d1.cfg")
     parser.add_argument(
         "--yolo_weights",
         type=str,
-        default="weights/best.pt"  #"weights/12-19-yolov3-tiny-3l/best.pt"
+        default=
+        "weights/12-20-dataset3-yolov3/best.pt"  #"weights/12-19-yolov3-tiny-3l/best.pt"
     )  #"uolov3/weights/yolov3-1cls-d1.pt")
     parser.add_argument("--yolo_names", type=str, default="data/cow.names")
     parser.add_argument("--conf_thresh", type=float, default=0.5)  #ori 0.5
@@ -145,8 +180,9 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+    output_file = "./data/videosample/predicts.txt"
     with Detector(args) as det:
-        det.detect()
+        det.detect(output_file)
 
     os.system("ffmpeg -y -i demo.avi -r 10 -b:a 32k %s_output.mp4" %
               (os.path.basename(args.VIDEO_PATH).split('.')[0]))
