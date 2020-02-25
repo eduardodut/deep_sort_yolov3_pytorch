@@ -413,6 +413,86 @@ def compute_loss(p, targets, model):  # predictions, targets, model
     loss = lbox + lobj + lcls
     return loss, torch.cat((lbox, lobj, lcls, loss)).detach()
 
+def compute_loss_point(p, targets, model):  # predictions, targets, model
+    ft = torch.cuda.FloatTensor if p[0].is_cuda else torch.Tensor
+    lcls, lbox, lobj = ft([0]), ft([0]), ft([0])
+    tcls, tbox, indices, anchor_vec = build_targets(model, targets)
+    h = model.hyp  # hyperparameters
+    arc = model.arc  # # (default, uCE, uBCE) detection architectures
+    red = 'mean'  # Loss reduction (sum or mean)
+
+    # Define criteria
+    BCEcls = nn.BCEWithLogitsLoss(pos_weight=ft([h['cls_pw']]), reduction=red)
+    BCEobj = nn.BCEWithLogitsLoss(pos_weight=ft([h['obj_pw']]), reduction=red)
+    BCE = nn.BCEWithLogitsLoss()
+    CE = nn.CrossEntropyLoss()  # weight=model.class_weights
+
+    if 'F' in arc:  # add focal loss
+        g = h['fl_gamma']
+        BCEcls, BCEobj, BCE, CE = FocalLoss(BCEcls, g), FocalLoss(BCEobj, g), FocalLoss(BCE, g), FocalLoss(CE, g)
+
+    # Compute losses
+    np, ng = 0, 0  # number grid points, targets
+    for i, pi in enumerate(p):  # layer index, layer predictions
+        b, a, gj, gi = indices[i]  # image, anchor, gridy, gridx
+        tobj = torch.zeros_like(pi[..., 0])  # target obj
+        np += tobj.numel()
+
+        # Compute losses
+        nb = len(b)
+        if nb:  # number of targets
+            ng += nb
+            ps = pi[b, a, gj, gi]  # prediction subset corresponding to targets
+            tobj[b, a, gj, gi] = 1.0  # obj
+            # ps[:, 2:4] = torch.sigmoid(ps[:, 2:4])  # wh power loss (uncomment)
+
+            # GIoU
+            pxy = torch.sigmoid(ps[:, 0:2])  # pxy = pxy * s - (s - 1) / 2,  s = 1.5  (scale_xy)
+            pbox = torch.cat((pxy, torch.exp(ps[:, 2:4]).clamp(max=1E3) * anchor_vec[i]), 1)  # predicted box
+            giou = 1.0 - bbox_iou(pbox.t(), tbox[i], x1y1x2y2=False, GIoU=True)  # giou computation
+            lbox += giou.sum() if red == 'sum' else giou.mean()  # giou loss
+
+            if 'default' in arc and model.nc > 1:  # cls loss (only if multiple classes)
+                t = torch.zeros_like(ps[:, 5:])  # targets
+                t[range(nb), tcls[i]] = 1.0
+                lcls += BCEcls(ps[:, 5:], t)  # BCE
+                # lcls += CE(ps[:, 5:], tcls[i])  # CE
+
+                # Instance-class weighting (use with reduction='none')
+                # nt = t.sum(0) + 1  # number of targets per class
+                # lcls += (BCEcls(ps[:, 5:], t) / nt).mean() * nt.mean()  # v1
+                # lcls += (BCEcls(ps[:, 5:], t) / nt[tcls[i]].view(-1,1)).mean() * nt.mean()  # v2
+
+            # Append targets to text file
+            # with open('targets.txt', 'a') as file:
+            #     [file.write('%11.5g ' * 4 % tuple(x) + '\n') for x in torch.cat((txy[i], twh[i]), 1)]
+
+        if 'default' in arc:  # separate obj and cls
+            lobj += BCEobj(pi[..., 4], tobj)  # obj loss
+
+        elif 'BCE' in arc:  # unified BCE (80 classes)
+            t = torch.zeros_like(pi[..., 5:])  # targets
+            if nb:
+                t[b, a, gj, gi, tcls[i]] = 1.0
+            lobj += BCE(pi[..., 5:], t)
+
+        elif 'CE' in arc:  # unified CE (1 background + 80 classes)
+            t = torch.zeros_like(pi[..., 0], dtype=torch.long)  # targets
+            if nb:
+                t[b, a, gj, gi] = tcls[i] + 1
+            lcls += CE(pi[..., 4:].view(-1, model.nc + 1), t.view(-1))
+
+    lbox *= h['giou']
+    lobj *= h['obj']
+    lcls *= h['cls']
+    if red == 'sum':
+        lbox *= 3 / ng
+        lobj *= 3 / np
+        lcls *= 3 / ng / model.nc
+
+    loss = lbox + lobj + lcls
+    return loss, torch.cat((lbox, lobj, lcls, loss)).detach()
+
 
 def build_targets(model, targets):
     # targets = [image, class, x, y, w, h]

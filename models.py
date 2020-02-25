@@ -11,7 +11,7 @@ ONNX_EXPORT = False
 def create_modules(module_defs, img_size, arc):
     # Constructs module list of layer blocks from module configuration in module_defs
 
-    hyperparams = module_defs.pop(0)
+    hyperparams = module_defs.pop(0) # 去掉net层
     output_filters = [int(hyperparams['channels'])]
     module_list = nn.ModuleList()
     routs = []  # list of layers which rout to deeper layes
@@ -82,8 +82,8 @@ def create_modules(module_defs, img_size, arc):
             modules = nn.Upsample(scale_factor=int(mdef['stride']),
                                   mode='nearest')
 
-        elif mdef[
-                'type'] == 'route':  # nn.Sequential() placeholder for 'route' layer
+        elif mdef['type'] == 'route':  
+            # nn.Sequential() placeholder for 'route' layer
             layers = [int(x) for x in mdef['layers'].split(',')]
             filters = sum(
                 [output_filters[i + 1 if i > 0 else i] for i in layers])
@@ -91,8 +91,8 @@ def create_modules(module_defs, img_size, arc):
             # if mdef[i+1]['type'] == 'reorg3d':
             #     modules = nn.Upsample(scale_factor=1/float(mdef[i+1]['stride']), mode='nearest')  # reorg3d
 
-        elif mdef[
-                'type'] == 'shortcut':  # nn.Sequential() placeholder for 'shortcut' layer
+        elif mdef['type'] == 'shortcut': 
+            # nn.Sequential() placeholder for 'shortcut' layer
             filters = output_filters[int(mdef['from'])]
             layer = int(mdef['from'])
             routs.extend([i + layer if layer < 0 else layer])
@@ -217,11 +217,11 @@ class YOLOLayer(nn.Module):
     def __init__(self, anchors, nc, img_size, yolo_index, arc):
         super(YOLOLayer, self).__init__()
 
-        self.anchors = torch.Tensor(anchors)
+        self.anchors = torch.Tensor(anchors) # [[81,82],[135,169],[344,319]]
         self.na = len(anchors)  # number of anchors (3)
         self.nc = nc  # number of classes (80)
-        self.nx = 0  # initialize number of x gridpoints
-        self.ny = 0  # initialize number of y gridpoints
+        self.nx = 0  # initialize number of x gridpoints 
+        self.ny = 0  # initialize number of y gridpoints 
         self.arc = arc
 
         if ONNX_EXPORT:  # grids must be computed in __init__
@@ -231,6 +231,7 @@ class YOLOLayer(nn.Module):
             create_grids(self, img_size, (nx, ny))
 
     def forward(self, p, img_size, var=None):
+        # bs, (class+5), nx,ny
         if ONNX_EXPORT:
             bs = 1  # batch size
         else:
@@ -239,8 +240,7 @@ class YOLOLayer(nn.Module):
                 create_grids(self, img_size, (nx, ny), p.device, p.dtype)
 
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
-        p = p.view(bs, self.na, self.nc + 5, self.ny,
-                   self.nx).permute(0, 1, 3, 4, 2).contiguous()  # prediction
+        p = p.view(bs, self.na, self.nc + 5, self.ny,self.nx).permute(0, 1, 3, 4, 2).contiguous()  # prediction
 
         if self.training:
             return p

@@ -31,7 +31,7 @@ hyp = {
     'cls_pw': 1.0,  # cls BCELoss positive_weight
     'obj': 64.3,  # obj loss gain (*=img_size/416 if img_size != 416)
     'obj_pw': 1.0,  # obj BCELoss positive_weight
-    'iou_t': 0.225,  # iou training threshold
+    'iou_t': 0.225,  # iou training threshold 这里阈值是不惩罚iou> iou_t的anchor
     'lr0': 0.00579,  # initial learning rate (SGD=1E-3, Adam=9E-5)
     'lrf': -4.,  # final LambdaLR learning rate = lr0 * (10 ** lrf)
     'momentum': 0.937,  # SGD momentum
@@ -300,9 +300,8 @@ def train():
 
         mloss = torch.zeros(4).to(device)  # mean losses
         pbar = tqdm(enumerate(dataloader), total=nb)  # progress bar
-        for i, (
-                imgs, targets, paths, _
-        ) in pbar:  # batch -------------------------------------------------------------
+        for i, (imgs, targets, paths, _) in pbar:  
+            # batch 
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(device).float(
             ) / 255.0  # uint8 to float32, 0 - 255 to 0.0 - 1.0
@@ -400,7 +399,7 @@ def train():
                     batch_size=batch_size,
                     img_size=opt.img_size,
                     model=model,
-                    conf_thres = 0.001 if final_epoch else 0.1,  # 0.1 for speed
+                    conf_thres=0.001 if final_epoch else 0.1,  # 0.1 for speed
                     save_json=final_epoch and is_coco,
                     dataloader=testloader,
                     testing=False)
@@ -548,13 +547,14 @@ if __name__ == '__main__':
     parser.add_argument('--evolve',
                         action='store_true',
                         help='evolve hyperparameters')
-    parser.add_argument('--bucket', type=str, default='', help='gsutil bucket')
+    parser.add_argument('--bucket', type=str, default='', help='gsutil bucket')# 是否上传到云空间
     parser.add_argument('--img-weights',
                         action='store_true',
                         help='select training images by weight')
     parser.add_argument('--cache-images',
                         action='store_true',
                         help='cache images for faster training')
+                        # 类似tensorflow 1.x里边先把图片打包成二进制文件，加速读取速度
     parser.add_argument('--weights',
                         type=str,
                         default='weights/darknet53.conv.74',
@@ -562,10 +562,10 @@ if __name__ == '__main__':
     parser.add_argument('--arc',
                         type=str,
                         default='default',
-                        help='yolo architecture')  # defaultpw, uCE, uBCE
+                        help='yolo architecture, other options: CE, BCE')  # defaultpw, uCE, uBCE
     parser.add_argument('--prebias',
                         action='store_true',
-                        help='transfer-learn yolo biases prior to training')
+                        help='transfer-learn yolo biases prior to training') # 迁移学习yolo偏移？
     parser.add_argument(
         '--name',
         default='',
