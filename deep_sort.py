@@ -12,6 +12,7 @@ from utils.utils_sort import COLORS_10, draw_bboxes
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+
 class Detector(object):
     def __init__(self, args):
         self.args = args
@@ -109,13 +110,10 @@ def parse_args():
     parser.add_argument(
         "--yolo_weights",
         type=str,
-        default=
-        "weights/best.pt"  #"weights/12-19-yolov3-tiny-3l/best.pt"
+        default="weights/best.pt"  #"weights/12-19-yolov3-tiny-3l/best.pt"
     )  #"uolov3/weights/yolov3-1cls-d1.pt")
-    parser.add_argument("--yolo_names",
-                        type=str,
-                        default="data/cow.names")
-    parser.add_argument("--conf_thresh", type=float, default=0.5)#ori 0.5
+    parser.add_argument("--yolo_names", type=str, default="data/cow.names")
+    parser.add_argument("--conf_thresh", type=float, default=0.5)  #ori 0.5
     parser.add_argument("--nms_thresh", type=float, default=0.4)
     parser.add_argument("--deepsort_checkpoint",
                         type=str,
@@ -127,9 +125,7 @@ def parse_args():
     parser.add_argument("--display_width", type=int, default=800)
     parser.add_argument("--display_height", type=int, default=600)
     parser.add_argument("--save_path", type=str, default="demo.avi")
-    parser.add_argument("--data_cfg",
-                        type=str,
-                        default="data/dataset1.data")
+    parser.add_argument("--data_cfg", type=str, default="data/dataset1.data")
     parser.add_argument("--img_size", type=int, default=416, help="img size")
 
     return parser.parse_args()
