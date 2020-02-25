@@ -51,7 +51,7 @@ string.""",
                         type=str,default="./data/videosample/cutout24_mot_gt.txt",
                         help='Directory containing ground truth files.')
     parser.add_argument('--tests',
-                        type=str,default="./data/videosample/predicts.txt",
+                        type=str,default="./data/videosample/data.txt",
                         help='Directory containing tracker result files')
     parser.add_argument('--loglevel',
                         type=str,
@@ -78,7 +78,9 @@ def compare_dataframes(gts, ts):
     accs = []
     names = []
     for k, tsacc in ts.items():
+        print(k, '='*10, gts)
         if k in gts:
+            print("compare"*10)
             logging.info('Comparing %s...', k)
             accs.append(
                 mm.utils.compare_to_groundtruth(gts[k],

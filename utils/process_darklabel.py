@@ -21,7 +21,7 @@ def xyxy2xywh(x):
     # Convert bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
     # y = torch.zeros_like(x) if isinstance(x,
     #                                       torch.Tensor) else np.zeros_like(x)
-    y = [0,0,0,0]
+    y = [0, 0, 0, 0]
 
     y[0] = (x[0] + x[2]) / 2
     y[1] = (x[1] + x[3]) / 2
@@ -29,40 +29,52 @@ def xyxy2xywh(x):
     y[3] = x[3] - x[1]
     return y
 
+def process_darklabel(video_label_path, mot_label_path):
+    f = open(video_label_path, "r")
+    f_o = open(mot_label_path, "w")
 
-video_path = "./data/videosample/cutout24.mp4"
-video_label_path = "./data/videosample/cutout24_gt.txt"
-mot_label_path = "./data/videosample/cutout24_mot_gt.txt"
+    contents = f.readlines()
 
-f = open(video_label_path, "r")
-f_o =  open(mot_label_path, "w")
+    for line in contents:
+        line = line[:-1]
+        num_list = [num for num in line.split(',')]
 
-contents = f.readlines()
+        frame_id = int(num_list[0]) + 1
+        total_num = int(num_list[1])
 
-for line in contents:
-    line = line[:-1]
-    num_list = [num for num in line.split(',')]
+        base = 2
 
-    frame_id = int(num_list[0])+1
-    total_num = int(num_list[1])
+        for i in range(total_num):
 
-    base = 2
+            print(base, base + i * 6, base + i * 6 + 4)
 
-    for i in range(total_num):
-        
-        print(base, base+i*6, base+i*6+4)
+            _id = int(num_list[base + i * 6]) + 1
+            _box_x1 = int(num_list[base + i * 6 + 1])
+            _box_y1 = int(num_list[base + i * 6 + 2])
+            _box_x2 = int(num_list[base + i * 6 + 3])
+            _box_y2 = int(num_list[base + i * 6 + 4])
 
-        _id = int(num_list[base + i * 6])
-        _box_x1 = int(num_list[base + i * 6 + 1])
-        _box_y1 = int(num_list[base + i * 6 + 2])
-        _box_x2 = int(num_list[base + i * 6 + 3])
-        _box_y2 = int(num_list[base + i * 6 + 4])
+            y = xyxy2xywh([_box_x1, _box_y1, _box_x2, _box_y2])
 
-        y = xyxy2xywh([_box_x1, _box_y1, _box_x2, _box_y2])
+            write_line = "%d,%d,%d,%d,%d,%d,1,1,1\n" % (frame_id, _id, y[0],
+                                                        y[1], y[2], y[3])
 
-        write_line = "%d,%d,%d,%d,%d,%d,1,1,1\n" % (frame_id, _id, y[0], y[1], y[2], y[3])
-        
-        f_o.write(write_line)
+            f_o.write(write_line)
 
-f.close()
-f_o.close()
+    f.close()
+    f_o.close()
+
+if __name__ == "__main__":
+    root_dir = "./data/videosample"
+
+    video_path = "./data/videosample/cutout24.mp4"
+    video_label_path = "./data/videosample/cutout24_gt.txt"
+    mot_label_path = "./data/videosample/cutout24_mot_gt.txt"
+
+    for item in os.listdir(root_dir):
+        full_path = os.path.join(root_dir, item)
+
+        video_path = os.path.join(full_path, item+".mp4")
+        video_label_path = os.path.join(full_path, item + "_gt.txt")
+        mot_label_path = os.path.join(full_path, "gt.txt")
+        process_darklabel(video_label_path, mot_label_path)

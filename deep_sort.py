@@ -10,11 +10,10 @@ from utils.utils import xyxy2xywh
 from deep_sort import DeepSort
 from utils.utils_sort import COLORS_10, draw_bboxes
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 '''
 mot results:
 ------------
-frame, id, tlwh(%.2f),1,-1,-1,-1 
+frame, id(从1开始), tlwh(%.2f),1,-1,-1,-1 
 3,1,97.00,545.00,79.00,239.00,1,-1,-1,-1
 3,2,376.24,396.64,83.44,252.43,1,-1,-1,-1
 3,3,546.66,146.51,59.63,180.89,1,-1,-1,-1
@@ -24,17 +23,18 @@ frame, id, tlwh(%.2f),1,-1,-1,-1
 3,7,1732.55,448.65,73.69,223.20,1,-1,-1,-1
 '''
 
-# def xyxy2xywh(x):
-#     # Convert bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
-#     # y = torch.zeros_like(x) if isinstance(x,
-#     #                                       torch.Tensor) else np.zeros_like(x)
-#     y = [0, 0, 0, 0]
 
-#     y[0] = (x[0] + x[2]) / 2
-#     y[1] = (x[1] + x[3]) / 2
-#     y[2] = x[2] - x[0]
-#     y[3] = x[3] - x[1]
-#     return y
+def xyxy2tlwh(x):
+    '''
+    (top left x, top left y,width, height)
+    '''
+    y = torch.zeros_like(x) if isinstance(x,
+                                          torch.Tensor) else np.zeros_like(x)
+    y[:, 0] = x[:, 0]
+    y[:, 1] = x[:, 1]
+    y[:, 2] = x[:, 2] - x[:, 0]
+    y[:, 3] = x[:, 3] - x[:, 1]
+    return y
 
 
 class Detector(object):
@@ -43,8 +43,10 @@ class Detector(object):
         if args.display:
             cv2.namedWindow("test", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("test", args.display_width, args.display_height)
+
         device = torch.device(
             'cuda') if torch.cuda.is_available() else torch.device('cpu')
+
         self.vdo = cv2.VideoCapture()
         self.yolo3 = InferYOLOv3(args.yolo_cfg,
                                  args.img_size,
@@ -54,7 +56,6 @@ class Detector(object):
                                  conf_thres=args.conf_thresh,
                                  nms_thres=args.nms_thresh)
         self.deepsort = DeepSort(args.deepsort_checkpoint)
-        self.class_names = self.yolo3.classes
 
     def __enter__(self):
         assert os.path.isfile(self.args.VIDEO_PATH), "Error: path error"
@@ -115,7 +116,7 @@ class Detector(object):
 
                     #frame, id, tlwh(%.2f),1,-1,-1,-1
                     if outfile is not None:
-                        box_xywh = xyxy2xywh(bbox_xyxy)
+                        box_xywh = xyxy2tlwh(bbox_xyxy)
 
                         # print("shape:",box_xywh.shape)
 
@@ -159,7 +160,6 @@ def parse_args():
         default=
         "weights/12-20-dataset3-yolov3/best.pt"  #"weights/12-19-yolov3-tiny-3l/best.pt"
     )  #"uolov3/weights/yolov3-1cls-d1.pt")
-    parser.add_argument("--yolo_names", type=str, default="data/cow.names")
     parser.add_argument("--conf_thresh", type=float, default=0.5)  #ori 0.5
     parser.add_argument("--nms_thresh", type=float, default=0.4)
     parser.add_argument("--deepsort_checkpoint",
@@ -184,5 +184,5 @@ if __name__ == "__main__":
     with Detector(args) as det:
         det.detect(output_file)
 
-    os.system("ffmpeg -y -i demo.avi -r 10 -b:a 32k %s_output.mp4" %
-              (os.path.basename(args.VIDEO_PATH).split('.')[0]))
+    # os.system("ffmpeg -y -i demo.avi -r 10 -b:a 32k %s_output.mp4" %
+    #           (os.path.basename(args.VIDEO_PATH).split('.')[0]))
