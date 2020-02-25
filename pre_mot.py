@@ -78,14 +78,14 @@ class DeepSortDetector(object):
     def __enter__(self):
         assert os.path.isfile(self.video_path), "Error: path error"
         self.vidCap.open(self.video_path)
-        self.im_width = int(self.vdo.get(cv2.CAP_PROP_FRAME_WIDTH))
-        self.im_height = int(self.vdo.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.im_width = int(self.vidCap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.im_height = int(self.vidCap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         if self.save_path is not None:
             fourcc = cv2.VideoWriter_fourcc(*'MJPG')
             self.output = cv2.VideoWriter(self.save_path, fourcc, 20,
                                           (self.im_width, self.im_height))
-        assert self.vdo.isOpened()
+        assert self.vidCap.isOpened()
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -94,7 +94,7 @@ class DeepSortDetector(object):
 
     def detect(self):
         frame_no = -1
-        skip_no = 3
+        skip_no = 2
 
         if self.output_file:
             f = open(output_file, "w")
@@ -119,7 +119,7 @@ class DeepSortDetector(object):
 
             # deepsort部分
             ds_begin = time.time()
-            if bbox_xyxy:
+            if bbox_xyxy is not None:
                 bbox_cxcywh = xyxy2xywh(bbox_xyxy)
                 outputs = self.deepsort.update(bbox_cxcywh, cls_conf, img)
 
@@ -131,10 +131,10 @@ class DeepSortDetector(object):
 
                     # frame,id,tlwh,1,-1,-1,-1
                     if self.output_file:
-                        bbox_tlwh = xyxy2tlwh(bbox_xyxy)
+                        bbox_tlwh = xyxy2xywh(bbox_xyxy)
                         for i in range(len(bbox_tlwh)):
                             write_line = "%d,%d,%d,%d,%d,%d,1,-1,-1,-1\n" % (
-                                frame_cnt + 1, outputs[i, -1],
+                                frame_no + 1, outputs[i, -1],
                                 int(bbox_tlwh[i][0]), int(bbox_tlwh[i][1]),
                                 int(bbox_tlwh[i][2]), int(bbox_tlwh[i][3]))
                             f.write(write_line)
@@ -142,18 +142,20 @@ class DeepSortDetector(object):
 
             total_end = time.time()
 
-            print(
-                "frame:%d|det:%.4f|sort:%.4f|total:%.4f|det p:%.2f%%|fps:%.2f"
-                % (frame_no, (yolo_end - yolo_begin), (ds_end - ds_begin),
-                   (total_end - total_begin), ((yolo_end - yolo_begin) * 100 /
-                                               (total_end - total_begin))),
-                (1 / (total_end - total_begin)))
-            if self.display:
+            # print("frame:%d|det:%.4f|deep sort:%.4f|total:%.4f|det p:%.2f%%|fps:%.2f"% ( frame_no,
+            #         (yolo_end - yolo_begin),
+            #         (ds_end - ds_begin),
+            #         (total_end - total_begin),
+            #         ((yolo_end - yolo_begin) * 100 /(total_end - total_begin)),
+            #         (1 / (total_end - total_begin))))
+
+            if self.display is True:
                 cv2.imshow("Test", img)
                 cv2.waitKey(0)
             if self.save_path:
                 self.output.write(img)
-        if outfile:
+
+        if self.output_file:
             f.close()
 
 
@@ -186,8 +188,10 @@ if __name__ == "__main__":
     for folder in os.listdir(args.video_root):
         video_path = join(args.video_root, folder + "/" + folder + ".mp4")
         output_file = join("./data/videoresult", folder + ".txt")
-        save_path = join("./output", folder + ".mp4")
-        # print(video_path)
+        save_path = join("./output", folder + ".avi")
+        print("#"*30)
+        print("#"*10,folder,"#"*10)
+        print("#"*30)
         with DeepSortDetector(args.cfg, args.weights, video_path,
                               args.deep_checkpoint, args.data, output_file,
                               args.img_size, args.display, args.nms_thres,
