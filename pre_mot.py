@@ -72,8 +72,8 @@ class DeepSortDetector(object):
         self.save_path = save_path
 
         if self.display:
-            cv2.namedWindow("test", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("test", display_width, display_height)
+            cv2.namedWindow("Test", cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("Test", display_width, display_height)
 
     def __enter__(self):
         assert os.path.isfile(self.video_path), "Error: path error"
@@ -151,7 +151,8 @@ class DeepSortDetector(object):
 
             if self.display is True:
                 cv2.imshow("Test", img)
-                cv2.waitKey(0)
+                cv2.waitKey(1)
+
             if self.save_path:
                 self.output.write(img)
 
@@ -167,7 +168,7 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=str, default="data/dataset1.data")
     parser.add_argument("--weights",
                         type=str,
-                        default="weights/12-18-yolov3-1cls/best.pt")
+                        default="weights/12-25-dataset4-yolov3-1cls/best.pt")
     parser.add_argument("--img_size", type=int, default=416)
     parser.add_argument("--deep_checkpoint",
                         type=str,
