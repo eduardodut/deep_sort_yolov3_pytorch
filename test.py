@@ -11,7 +11,7 @@ from utils.utils import *
 def test(cfg,
          data,
          weights=None,
-         batch_size=16,
+         batch_size=2,
          img_size=416,
          conf_thres=0.001,
          nms_thres=0.5,
@@ -226,10 +226,10 @@ def test(cfg,
 
     # Print results
     if testing:
-        pf = '%20s' + '%10.3g' * 8  # print format
+        pf = '%20s' + '%10.4g' * 8  # print format
         print(pf % ('all', seen, nt.sum(), mp, mr, map, mf1, tp_2, fp_2))
     else:
-        pf = '%20s' + '%10.3g' * 6  # print format
+        pf = '%20s' + '%10.4g' * 6  # print format
         print(pf % ('all', seen, nt.sum(), mp, mr, map, mf1))
 
     # Print results per class
@@ -278,20 +278,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
     parser.add_argument('--cfg',
                         type=str,
-                        default='cfg/yolov3-tiny-cbam.cfg',
+                        default='cfg/yolov3.cfg',
                         help='*.cfg path')
     parser.add_argument('--data',
                         type=str,
-                        default='data/dimtargetSingle.data',
+                        default='data/dataset1.data',
                         help='*.data path')
     parser.add_argument(
         '--weights',
         type=str,
-        default='weights/1-12-dimtarget-yolov3-tiny-cbam/best.pt',
+        default='weights/best.pt',
         help='path to weights file')
     parser.add_argument('--batch-size',
                         type=int,
-                        default=16,
+                        default=2,
                         help='size of each image batch')
     parser.add_argument('--img-size',
                         type=int,
@@ -299,7 +299,7 @@ if __name__ == '__main__':
                         help='inference size (pixels)')
     parser.add_argument('--conf-thres',
                         type=float,
-                        default=0.5,
+                        default=0.2,
                         help='object confidence threshold')
     parser.add_argument('--nms-thres',
                         type=float,

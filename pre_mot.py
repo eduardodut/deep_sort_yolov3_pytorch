@@ -142,12 +142,12 @@ class DeepSortDetector(object):
 
             total_end = time.time()
 
-            # print("frame:%d|det:%.4f|deep sort:%.4f|total:%.4f|det p:%.2f%%|fps:%.2f"% ( frame_no,
-            #         (yolo_end - yolo_begin),
-            #         (ds_end - ds_begin),
-            #         (total_end - total_begin),
-            #         ((yolo_end - yolo_begin) * 100 /(total_end - total_begin)),
-            #         (1 / (total_end - total_begin))))
+            print("frame:%d|det:%.4f|deep sort:%.4f|total:%.4f|det p:%.2f%%|fps:%.2f"% ( frame_no,
+                    (yolo_end - yolo_begin),
+                    (ds_end - ds_begin),
+                    (total_end - total_begin),
+                    ((yolo_end - yolo_begin) * 100 /(total_end - total_begin)),
+                    (1 / (total_end - total_begin))))
 
             if self.display is True:
                 cv2.imshow("Test", img)
@@ -164,11 +164,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('parser')
     # 必须指定
     parser.add_argument("--video_root", type=str, default="./data/videosample")
-    parser.add_argument("--cfg", type=str, default="cfg/yolov3-1cls.cfg")
+    parser.add_argument("--cfg", type=str, default="cfg/yolov3.cfg")
     parser.add_argument("--data", type=str, default="data/dataset1.data")
     parser.add_argument("--weights",
                         type=str,
-                        default="weights/12-25-dataset4-yolov3-1cls/best.pt")
+                        default="weights/best.pt")
     parser.add_argument("--img_size", type=int, default=416)
     parser.add_argument("--deep_checkpoint",
                         type=str,

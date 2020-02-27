@@ -106,9 +106,20 @@ if __name__ == '__main__':
     data = load_dataset(ANNOTATIONS_PATH)
 
     out = kmeans(data, k=CLUSTERS)
-    
+
     print('Boxes:')
-    print(np.array(out) * INPUTDIM)
+    # print(np.array(out) * INPUTDIM)
+
+    anchors = np.array(out)*INPUTDIM
+
+    anchors = np.sort(anchors, axis=0*1)
+
+    print("=================")
+    for i in range(len(anchors)):
+        print("%.2f,%.2f, " % (anchors[i][0], anchors[i][1]), end="")
+
+    print("\n=================")
+
     print("Accuracy: {:.2f}%".format(avg_iou(data, out) * 100))
     final_anchors = np.around(out[:, 0] / out[:, 1], decimals=2).tolist()
     print("Before Sort Ratios:\n {}".format(final_anchors))
