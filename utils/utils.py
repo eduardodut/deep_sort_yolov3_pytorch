@@ -607,7 +607,7 @@ def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.5):
 
         # Set NMS method https://github.com/ultralytics/yolov3/issues/679
         # 'OR', 'AND', 'MERGE', 'VISION', 'VISION_BATCHED'
-        method = 'MERGE' if conf_thres <= 0.01 else 'MERGE' #'VISION'  # MERGE is highest mAP, VISION is fastest
+        method = 'OR' if conf_thres <= 0.01 else 'MERGE' #'VISION'  # MERGE is highest mAP, VISION is fastest
 
         # Batched NMS
         if method == 'VISION_BATCHED':

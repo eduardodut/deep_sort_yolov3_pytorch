@@ -516,11 +516,11 @@ if __name__ == '__main__':
                         help='batches to accumulate before optimizing')
     parser.add_argument('--cfg',
                         type=str,
-                        default='cfg/yolov3.cfg',
+                        default='cfg/yolov3-tiny-1cls.cfg',
                         help='*.cfg path')
     parser.add_argument('--data',
                         type=str,
-                        default='data/dataset1.data',
+                        default='data/dataset2.data',
                         help='*.data path')
     parser.add_argument('--multi-scale',
                         action='store_true',

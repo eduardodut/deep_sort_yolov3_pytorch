@@ -5,6 +5,7 @@ import argparse
 import torch
 import numpy as np
 
+from collections import deque
 from predict import InferYOLOv3
 from utils.utils import xyxy2xywh
 from deep_sort import DeepSort
@@ -99,7 +100,7 @@ class Detector(object):
 
             t2_begin = time.time()
             if bbox_xxyy is not None:
-                # select class cow
+                # select class 
                 # mask = cls_ids == 0
                 # bbox_xxyy = bbox_xxyy[mask]
 
@@ -112,20 +113,16 @@ class Detector(object):
                 if len(outputs) > 0:
                     bbox_xyxy = outputs[:, :4]
                     identities = outputs[:, -1]
+                    # 画框
                     ori_im = draw_bboxes(ori_im, bbox_xyxy, identities)
 
                     #frame, id, tlwh(%.2f),1,-1,-1,-1
                     if outfile is not None:
                         box_xywh = xyxy2tlwh(bbox_xyxy)
-
-                        # print("shape:",box_xywh.shape)
-
                         for i in range(len(box_xywh)):
-                            # print(i)
                             write_line = "%d,%d,%d,%d,%d,%d,1,-1,-1,-1\n" % (
                                 frame_cnt + 1, outputs[i,-1], int(box_xywh[i][0]), int(box_xywh[i][1]),
                                 int(box_xywh[i][2]), int(box_xywh[i][3]))
-                            # print(write_line)
                             f.write(write_line)
 
             t2_end = time.time()
@@ -152,14 +149,14 @@ def parse_args():
     parser.add_argument("VIDEO_PATH", type=str)
     parser.add_argument("--yolo_cfg",
                         type=str,
-                        default="cfg/yolov3-1cls.cfg"
+                        default="cfg/yolov3-tiny-1cls.cfg"
                         )  #"uolov3/cfg/yolov3-1cls-d1.cfg")
     parser.add_argument(
         "--yolo_weights",
         type=str,
         default=
-        "weights/12-20-dataset3-yolov3/best.pt"  #"weights/12-19-yolov3-tiny-3l/best.pt"
-    )  #"uolov3/weights/yolov3-1cls-d1.pt")
+        "weights/best.pt"  #"weights/12-19-yolov3-tiny-3l/best.pt"
+    )
     parser.add_argument("--conf_thresh", type=float, default=0.5)  #ori 0.5
     parser.add_argument("--nms_thresh", type=float, default=0.4)
     parser.add_argument("--deepsort_checkpoint",
@@ -172,7 +169,7 @@ def parse_args():
     parser.add_argument("--display_width", type=int, default=800)
     parser.add_argument("--display_height", type=int, default=600)
     parser.add_argument("--save_path", type=str, default="demo.avi")
-    parser.add_argument("--data_cfg", type=str, default="data/dataset1.data")
+    parser.add_argument("--data_cfg", type=str, default="data/voc_small.data")
     parser.add_argument("--img_size", type=int, default=416, help="img size")
 
     return parser.parse_args()
