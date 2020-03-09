@@ -45,27 +45,29 @@ class DeepSortDetector(object):
         display_height - 600
         save_path = "./video1_out.mp4"
     """
-    def __init__(self,
-                 cfg,
-                 weights,
-                 video_path,
-                 deep_checkpoint="deep_sort/deep/checkpoint/ckpt.t7",
-                 data="dataset1.data",
-                 output_file=None,
-                 img_size=416,
-                 display=False,
-                 nms_thres=0.4,
-                 conf_thres=0.5,
-                 max_dist=0.2,
-                 display_width=800,
-                 display_height=600,
-                 save_path=None):
+    def __init__(
+            self,
+            cfg,
+            weights,
+            video_path,
+            deep_checkpoint="deep_sort/deep/checkpoint/ckpt.t7",
+            data="dataset1.data",
+            output_file=None,
+            img_size=416,
+            display=False,
+            nms_thres=0.4,
+            conf_thres=0.5,
+            max_dist=0.2,
+            display_width=800,
+            display_height=600,
+            save_path=None):
         device = torch.device(
             'cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.vidCap = cv2.VideoCapture()
         self.yolov3 = InferYOLOv3(cfg, img_size, weights, data, device,
                                   conf_thres, nms_thres)
-        self.deepsort = DeepSort(deep_checkpoint, max_dist)
+        self.deepsort = DeepSort(deep_checkpoint,
+                                 max_dist)
         self.display = display
         self.video_path = video_path
         self.output_file = output_file
@@ -94,7 +96,7 @@ class DeepSortDetector(object):
 
     def detect(self):
         frame_no = -1
-        skip_no = 2
+        # skip_no = 4
 
         if self.output_file:
             f = open(output_file, "w")
@@ -103,8 +105,8 @@ class DeepSortDetector(object):
             frame_no += 1
 
             # skip frames every n frames
-            if frame_no % skip_no == 0:
-                continue
+            # if frame_no % skip_no != 3:
+            #     continue
 
             # start time
             total_begin = time.time()
@@ -173,9 +175,10 @@ if __name__ == "__main__":
                         type=str,
                         default="weights/best.pt")
     parser.add_argument("--img_size", type=int, default=416)
-    parser.add_argument("--deep_checkpoint",
-                        type=str,
-                        default="deep_sort/deep/checkpoint/ckpt.t7")
+    parser.add_argument(
+        "--deep_checkpoint",
+        type=str,
+        default="deep_sort/deep/checkpoint/ckpt.t7")
 
     # 超参数
     parser.add_argument("--conf_thres", type=float, default=0.5)
@@ -203,3 +206,7 @@ if __name__ == "__main__":
                               args.display_width, args.display_height,
                               save_path) as det:
             det.detect()
+
+        avi_name = os.path.basename(video_path).split(".")[0]
+        os.system("ffmpeg -y -i ./output/%s.avi -r 10 -b:a 32k ./output/%s.mp4" %
+                  (avi_name, avi_name))

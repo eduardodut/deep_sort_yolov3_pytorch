@@ -127,7 +127,7 @@ def parse_args():
     parser.add_argument("--nms_thresh", type=float, default=0.4)
     parser.add_argument("--deepsort_checkpoint",
                         type=str,
-                        default="deep_sort/deep/checkpoint/ckpt.t7")
+                        default="deep_sort/deep/checkpoint/best.pt")
     parser.add_argument("--max_dist", type=float, default=0.2)
     parser.add_argument("--ignore_display",
                         dest="display",

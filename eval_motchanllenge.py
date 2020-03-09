@@ -47,11 +47,13 @@ Sequences of ground truth and test will be matched according to the `<SEQUENCE_X
 string.""",
         formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('groundtruths',
+    parser.add_argument('--groundtruths',
                         type=str,
+                        default="./data/videosample",
                         help='Directory containing ground truth files.')
-    parser.add_argument('tests',
+    parser.add_argument('--tests',
                         type=str,
+                        default="./data/videoresult",
                         help='Directory containing tracker result files')
     parser.add_argument('--loglevel',
                         type=str,
