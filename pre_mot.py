@@ -123,6 +123,7 @@ class DeepSortDetector(object):
             ds_begin = time.time()
             if bbox_xyxy is not None:
                 bbox_cxcywh = xyxy2xywh(bbox_xyxy)
+                
                 outputs = self.deepsort.update(bbox_cxcywh, cls_conf, img)
 
                 if len(outputs) > 0:
@@ -178,12 +179,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--deep_checkpoint",
         type=str,
-        default="deep_sort/deep/checkpoint/ckpt.t7")
+        default="deep_sort/deep/checkpoint/mobilenetv2_x1_0_best.pt")
 
     # 超参数
     parser.add_argument("--conf_thres", type=float, default=0.5)
     parser.add_argument("--nms_thres", type=float, default=0.3)
-    parser.add_argument("--max_dist", type=float, default=0.2)
+    parser.add_argument("--max_dist", type=float, default=0.4)
 
     # 展示
     parser.add_argument("--display", dest="display", action="store_true")

@@ -53,6 +53,7 @@ class KalmanFilter(object):
         self._std_weight_velocity = 1. / 160
 
     def initiate(self, measurement):
+        # measurement -> detection.to_xyah()
         """Create track from unassociated measurement.
 
         Parameters
@@ -69,23 +70,24 @@ class KalmanFilter(object):
             to 0 mean.
 
         """
-        mean_pos = measurement
-        mean_vel = np.zeros_like(mean_pos)
-        mean = np.r_[mean_pos, mean_vel]
+        mean_pos = measurement# [4]
+        mean_vel = np.zeros_like(mean_pos) # [4]
+        mean = np.r_[mean_pos, mean_vel] # [8]
 
         std = [
-            2 * self._std_weight_position * measurement[3],
-            2 * self._std_weight_position * measurement[3],
-            1e-2,
-            2 * self._std_weight_position * measurement[3],
-            10 * self._std_weight_velocity * measurement[3],
-            10 * self._std_weight_velocity * measurement[3],
-            1e-5,
-            10 * self._std_weight_velocity * measurement[3]]
-        covariance = np.diag(np.square(std))
+            2 * self._std_weight_position * measurement[3],  # x
+            2 * self._std_weight_position * measurement[3],  # y
+            1e-2,                                            # a
+            2 * self._std_weight_position * measurement[3],  # h
+            10 * self._std_weight_velocity * measurement[3], # vx
+            10 * self._std_weight_velocity * measurement[3], # vy
+            1e-5,                                            # va
+            10 * self._std_weight_velocity * measurement[3]] # vh
+        covariance = np.diag(np.square(std)) # 对角线 [8, 8]
         return mean, covariance
 
     def predict(self, mean, covariance):
+        # 相当于得到t时刻估计值
         """Run Kalman filter prediction step.
 
         Parameters
@@ -114,6 +116,7 @@ class KalmanFilter(object):
             self._std_weight_velocity * mean[3],
             1e-5,
             self._std_weight_velocity * mean[3]]
+
         motion_cov = np.diag(np.square(np.r_[std_pos, std_vel]))
 
         mean = np.dot(self._motion_mat, mean)
@@ -152,6 +155,7 @@ class KalmanFilter(object):
         return mean, covariance + innovation_cov
 
     def update(self, mean, covariance, measurement):
+        # 通过估计值和观测值估计最新结果
         """Run Kalman filter correction step.
 
         Parameters
