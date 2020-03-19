@@ -77,8 +77,8 @@ class Track:
         if feature is not None:
             self.features.append(feature)
 
-        self._n_init = n_init
-        self._max_age = max_age
+        self._n_init = n_init # 如果连续n_init帧都没有出现失配，设置为deleted状态
+        self._max_age = max_age # 上限
 
     def to_tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
@@ -110,6 +110,7 @@ class Track:
         return ret
 
     def predict(self, kf):
+        # 预测结果
         """Propagate the state distribution to the current time step using a
         Kalman filter prediction step.
 
@@ -124,6 +125,7 @@ class Track:
         self.time_since_update += 1
 
     def update(self, kf, detection):
+        # 将预测结果和观测结果结合
         """Perform Kalman filter measurement update step and update the feature
         cache.
 
@@ -133,7 +135,6 @@ class Track:
             The Kalman filter.
         detection : Detection
             The associated detection.
-
         """
         self.mean, self.covariance = kf.update(
             self.mean, self.covariance, detection.to_xyah())

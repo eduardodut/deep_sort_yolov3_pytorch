@@ -3,6 +3,9 @@ import numpy as np
 import scipy.linalg
 
 
+# 卡方分布-马氏距离
+# https://www.cnblogs.com/Yuanjing-Liu/p/9252844.html
+# https://blog.csdn.net/bluesliuf/article/details/88862918
 """
 Table for the 0.95 quantile of the chi-square distribution with N degrees of
 freedom (contains values for N=1, ..., 9). Taken from MATLAB/Octave's chi2inv
@@ -74,6 +77,7 @@ class KalmanFilter(object):
         mean_vel = np.zeros_like(mean_pos) # [4]
         mean = np.r_[mean_pos, mean_vel] # [8]
 
+        # P
         std = [
             2 * self._std_weight_position * measurement[3],  # x
             2 * self._std_weight_position * measurement[3],  # y
@@ -84,6 +88,7 @@ class KalmanFilter(object):
             1e-5,                                            # va
             10 * self._std_weight_velocity * measurement[3]] # vh
         covariance = np.diag(np.square(std)) # 对角线 [8, 8]
+
         return mean, covariance
 
     def predict(self, mean, covariance):
@@ -106,11 +111,14 @@ class KalmanFilter(object):
             state. Unobserved velocities are initialized to 0 mean.
 
         """
+
+        # Q
         std_pos = [
             self._std_weight_position * mean[3],
             self._std_weight_position * mean[3],
             1e-2,
             self._std_weight_position * mean[3]]
+
         std_vel = [
             self._std_weight_velocity * mean[3],
             self._std_weight_velocity * mean[3],
@@ -142,6 +150,7 @@ class KalmanFilter(object):
             estimate.
 
         """
+        # R
         std = [
             self._std_weight_position * mean[3],
             self._std_weight_position * mean[3],

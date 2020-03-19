@@ -3,6 +3,11 @@ import numpy as np
 
 
 def _pdist(a, b):
+    # 用于计算成对的平方距离
+    # a NxM 代表N个对象，每个对象有M个数值作为embedding进行比较
+    # b LxM 代表L个对象，每个对象有M个数值作为embedding进行比较
+    # 返回的是NxL的矩阵，比如dist[i][j]代表a[i]和b[j]之间的平方和距离
+    # 实现见：https://blog.csdn.net/frankzd/article/details/80251042
     """Compute pair-wise squared distance between points in `a` and `b`.
 
     Parameters
@@ -19,16 +24,21 @@ def _pdist(a, b):
         contains the squared distance between `a[i]` and `b[j]`.
 
     """
-    a, b = np.asarray(a), np.asarray(b)
+    a, b = np.asarray(a), np.asarray(b)# 拷贝一份数据
     if len(a) == 0 or len(b) == 0:
         return np.zeros((len(a), len(b)))
-    a2, b2 = np.square(a).sum(axis=1), np.square(b).sum(axis=1)
-    r2 = -2. * np.dot(a, b.T) + a2[:, None] + b2[None, :]
+    a2, b2 = np.square(a).sum(axis=1), np.square(b).sum(axis=1) # 求每个embedding的平方和
+    r2 = -2. * np.dot(a, b.T) + a2[:, None] + b2[None, :] # sum(N) + sum(L) -2 x [NxM]x[MxL] = [NxL]
     r2 = np.clip(r2, 0., float(np.inf))
     return r2
 
 
 def _cosine_distance(a, b, data_is_normalized=False):
+    # a和b之间的余弦距离
+    # a : [NxM] b : [LxM]
+    # 余弦距离 = 1 - 余弦相似度
+    # https://blog.csdn.net/u013749540/article/details/51813922
+    
     """Compute pair-wise cosine distance between points in `a` and `b`.
 
     Parameters
@@ -49,12 +59,15 @@ def _cosine_distance(a, b, data_is_normalized=False):
 
     """
     if not data_is_normalized:
-        a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
+        # 需要将余弦相似度转化成类似欧氏距离的余弦距离。
+        a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True) 
+        #  np.linalg.norm 操作是求向量的范式，默认是L2范式，等同于求向量的欧式距离。
         b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
     return 1. - np.dot(a, b.T)
 
 
 def _nn_euclidean_distance(x, y):
+    # 最近邻欧氏距离
     """ Helper function for nearest neighbor distance metric (Euclidean).
 
     Parameters
@@ -72,10 +85,11 @@ def _nn_euclidean_distance(x, y):
 
     """
     distances = _pdist(x, y)
-    return np.maximum(0.0, distances.min(axis=0))
+    return np.maximum(0.0, distances.min(axis=0)) # 找到最小值
 
 
 def _nn_cosine_distance(x, y):
+    # 最近邻余弦距离
     """ Helper function for nearest neighbor distance metric (cosine).
 
     Parameters
@@ -97,6 +111,7 @@ def _nn_cosine_distance(x, y):
 
 
 class NearestNeighborDistanceMetric(object):
+    # 对于每个目标，返回一个最近的距离
     """
     A nearest neighbor distance metric that, for each target, returns
     the closest distance to any sample that has been observed so far.
@@ -121,13 +136,17 @@ class NearestNeighborDistanceMetric(object):
     """
 
     def __init__(self, metric, matching_threshold, budget=None):
+        # 默认matching_threshold = 0.2 budge = 100
         if metric == "euclidean":
+            # 使用最近邻欧氏距离
             self._metric = _nn_euclidean_distance
         elif metric == "cosine":
+            # 使用最近邻余弦距离
             self._metric = _nn_cosine_distance
         else:
             raise ValueError(
                 "Invalid metric; must be either 'euclidean' or 'cosine'")
+        
         self.matching_threshold = matching_threshold
         self.budget = budget
         self.samples = {}
@@ -152,6 +171,7 @@ class NearestNeighborDistanceMetric(object):
         self.samples = {k: self.samples[k] for k in active_targets}
 
     def distance(self, features, targets):
+        # 比较feature和targets之间的距离，返回一个代价矩阵
         """Compute distance between features and targets.
 
         Parameters

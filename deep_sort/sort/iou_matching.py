@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 import numpy as np
 from . import linear_assignment
+'''
+功能列表
+'''
 
 
 def iou(bbox, candidates):
+    # 计算iou
     """Computer intersection over union.
 
     Parameters
@@ -40,6 +44,7 @@ def iou(bbox, candidates):
 
 def iou_cost(tracks, detections, track_indices=None,
              detection_indices=None):
+    # 计算track和detection之间的iou距离矩阵
     """An intersection over union distance metric.
 
     Parameters
@@ -75,6 +80,7 @@ def iou_cost(tracks, detections, track_indices=None,
             continue
 
         bbox = tracks[track_idx].to_tlwh()
-        candidates = np.asarray([detections[i].tlwh for i in detection_indices])
+        candidates = np.asarray(
+            [detections[i].tlwh for i in detection_indices])
         cost_matrix[row, :] = 1. - iou(bbox, candidates)
     return cost_matrix

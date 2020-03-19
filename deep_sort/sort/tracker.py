@@ -48,6 +48,7 @@ class Tracker:
         self._next_id = 1
 
     def predict(self):
+        # 每个track都进行一次预测
         """Propagate track state distributions one time step forward.
 
         This function should be called once every time step, before `update`.
@@ -99,6 +100,7 @@ class Tracker:
             #                  track_indices, detection_indices)
             features = np.array([dets[i].feature for i in detection_indices])
             targets = np.array([tracks[i].track_id for i in track_indices])
+            
             cost_matrix = self.metric.distance(features, targets)
             cost_matrix = linear_assignment.gate_cost_matrix(
                 self.kf, cost_matrix, tracks, dets, track_indices,
