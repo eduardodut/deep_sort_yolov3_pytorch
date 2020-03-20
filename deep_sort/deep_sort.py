@@ -106,6 +106,7 @@ class DeepSort(object):
             im = ori_img[y1:y2, x1:x2]
             im_crops.append(im)
         if im_crops:
+            # 在这里调用并提取embedding
             features = self.extractor(im_crops)
         else:
             features = np.array([])

@@ -81,6 +81,15 @@ def min_cost_matching(
 def matching_cascade(
         distance_metric, max_distance, cascade_depth, tracks, detections,
         track_indices=None, detection_indices=None):
+    '''
+    matches_a, unmatched_tracks_a, unmatched_detections = \
+    linear_assignment.matching_cascade(gated_metric ,
+                self.metric.matching_threshold , 
+                self.max_age ,
+                self.tracks , 
+                detections , 
+                confirmed_tracks)
+    '''
     """Run matching cascade.
 
     Parameters
@@ -119,10 +128,12 @@ def matching_cascade(
     """
     if track_indices is None:
         track_indices = list(range(len(tracks)))
+
     if detection_indices is None:
         detection_indices = list(range(len(detections)))
 
     unmatched_detections = detection_indices
+
     matches = []
     for level in range(cascade_depth):
         if len(unmatched_detections) == 0:  # No detections left
@@ -147,6 +158,7 @@ def matching_cascade(
 def gate_cost_matrix(
         kf, cost_matrix, tracks, detections, track_indices, detection_indices,
         gated_cost=INFTY_COST, only_position=False):
+    # 根据通过卡尔曼滤波获得的状态分布，使成本矩阵中的不可行条目无效。
     """Invalidate infeasible entries in cost matrix based on the state
     distributions obtained by Kalman filtering.
 
@@ -179,7 +191,6 @@ def gate_cost_matrix(
     -------
     ndarray
         Returns the modified cost matrix.
-
     """
     gating_dim = 2 if only_position else 4
     gating_threshold = kalman_filter.chi2inv95[gating_dim]

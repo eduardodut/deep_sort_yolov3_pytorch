@@ -68,17 +68,21 @@ class Track:
         self.mean = mean
         self.covariance = covariance
         self.track_id = track_id
-        self.hits = 1
+        self.hits = 1 
+        # hits和n_init进行比较
+        # hits每次update的时候进行一次更新（只有match的时候才进行update）
+        # hits代表匹配上了多少次，匹配次数超过n_init就会设置为confirmed状态
         self.age = 1
         self.time_since_update = 0
 
         self.state = TrackState.Tentative
         self.features = []
+        # 每个track对应多个features, 每次更新都将最新的feature添加到列表中
         if feature is not None:
             self.features.append(feature)
 
-        self._n_init = n_init # 如果连续n_init帧都没有出现失配，设置为deleted状态
-        self._max_age = max_age # 上限
+        self._n_init = n_init  # 如果连续n_init帧都没有出现失配，设置为deleted状态
+        self._max_age = max_age  # 上限
 
     def to_tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
@@ -146,6 +150,7 @@ class Track:
             self.state = TrackState.Confirmed
 
     def mark_missed(self):
+        # 非常重要
         """Mark this track as missed (no association at the current time step).
         """
         if self.state == TrackState.Tentative:

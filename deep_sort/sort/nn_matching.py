@@ -137,6 +137,7 @@ class NearestNeighborDistanceMetric(object):
 
     def __init__(self, metric, matching_threshold, budget=None):
         # 默认matching_threshold = 0.2 budge = 100
+        # budge 
         if metric == "euclidean":
             # 使用最近邻欧氏距离
             self._metric = _nn_euclidean_distance

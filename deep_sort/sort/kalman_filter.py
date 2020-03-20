@@ -73,11 +73,11 @@ class KalmanFilter(object):
             to 0 mean.
 
         """
-        mean_pos = measurement# [4]
-        mean_vel = np.zeros_like(mean_pos) # [4]
-        mean = np.r_[mean_pos, mean_vel] # [8]
+        mean_pos = measurement  # [4]
+        mean_vel = np.zeros_like(mean_pos)  # [4]
+        mean = np.r_[mean_pos, mean_vel]  # [8]
 
-        # P
+        # P 估计误差协方差矩阵
         std = [
             2 * self._std_weight_position * measurement[3],  # x
             2 * self._std_weight_position * measurement[3],  # y
@@ -112,7 +112,7 @@ class KalmanFilter(object):
 
         """
 
-        # Q
+        # Q 预测过程中噪声协方差
         std_pos = [
             self._std_weight_position * mean[3],
             self._std_weight_position * mean[3],
@@ -150,7 +150,7 @@ class KalmanFilter(object):
             estimate.
 
         """
-        # R
+        # R 测量过程中噪声的协方差
         std = [
             self._std_weight_position * mean[3],
             self._std_weight_position * mean[3],
@@ -200,6 +200,7 @@ class KalmanFilter(object):
 
     def gating_distance(self, mean, covariance, measurements,
                         only_position=False):
+        # 计算状态分布和测量值之间的门控距离
         """Compute gating distance between state distribution and measurements.
 
         A suitable distance threshold can be obtained from `chi2inv95`. If
@@ -239,4 +240,4 @@ class KalmanFilter(object):
             cholesky_factor, d.T, lower=True, check_finite=False,
             overwrite_b=True)
         squared_maha = np.sum(z * z, axis=0)
-        return squared_maha
+        return squared_maha # 马氏距离

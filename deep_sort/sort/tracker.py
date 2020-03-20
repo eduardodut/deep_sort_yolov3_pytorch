@@ -36,6 +36,7 @@ class Tracker:
         The list of active tracks at the current time step.
 
     """
+
     def __init__(self, metric, max_iou_distance=0.7, max_age=70, n_init=3):
         # 调用的时候，后边的参数全部是默认的
         self.metric = metric
@@ -70,21 +71,32 @@ class Tracker:
             self._match(detections)
 
         # Update track set.
+        # 匹配上的
         for track_idx, detection_idx in matches:
+            # 更新对应的detection
             self.tracks[track_idx].update(self.kf, detections[detection_idx])
+
+        # track失配，若待定则删除，若update时间很久也删除
+        # max age是一个存活期限，默认为70帧
         for track_idx in unmatched_tracks:
             self.tracks[track_idx].mark_missed()
+
+        # detection失配，进行初始化
         for detection_idx in unmatched_detections:
             self._initiate_track(detections[detection_idx])
+
+        # 得到最新的tracks列表，保存的是标记为confirmed和Tentative的track
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
         # Update distance metric.
         active_targets = [t.track_id for t in self.tracks if t.is_confirmed()]
+        # 获取所有confirmed状态的track id
         features, targets = [], []
         for track in self.tracks:
             if not track.is_confirmed():
                 continue
-            features += track.features
+            features += track.features  # 将tracks列表拼接到features列表
+            # 获取每个feature对应的track id
             targets += [track.track_id for _ in track.features]
             track.features = []
         self.metric.partial_fit(np.asarray(features), np.asarray(targets),
@@ -100,8 +112,10 @@ class Tracker:
             #                  track_indices, detection_indices)
             features = np.array([dets[i].feature for i in detection_indices])
             targets = np.array([tracks[i].track_id for i in track_indices])
-            
+
+            # 通过最近邻计算出代价矩阵
             cost_matrix = self.metric.distance(features, targets)
+            # 抑制掉一部分内容
             cost_matrix = linear_assignment.gate_cost_matrix(
                 self.kf, cost_matrix, tracks, dets, track_indices,
                 detection_indices)
@@ -119,7 +133,7 @@ class Tracker:
         # Associate confirmed tracks using appearance features.
         # 进行级联匹配，得到匹配的track、不匹配的track、不匹配的detection
         matches_a, unmatched_tracks_a, unmatched_detections = \
-            linear_assignment.matching_cascade( # 进行级联匹配
+            linear_assignment.matching_cascade(  # 进行级联匹配
                 gated_metric, self.metric.matching_threshold, self.max_age,
                 self.tracks, detections, confirmed_tracks)
 
@@ -134,12 +148,11 @@ class Tracker:
             if self.tracks[k].time_since_update != 1
         ]
         matches_b, unmatched_tracks_b, unmatched_detections = \
-            linear_assignment.min_cost_matching( # 进行线性匹配
+            linear_assignment.min_cost_matching(  # 进行线性匹配
                 iou_matching.iou_cost, self.max_iou_distance, self.tracks,
                 detections, iou_track_candidates, unmatched_detections)
 
-        matches = matches_a + matches_b # 组合两部分match得到的结果
-
+        matches = matches_a + matches_b  # 组合两部分match得到的结果
 
         unmatched_tracks = list(set(unmatched_tracks_a + unmatched_tracks_b))
         return matches, unmatched_tracks, unmatched_detections
