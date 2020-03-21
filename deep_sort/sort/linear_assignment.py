@@ -135,6 +135,7 @@ def matching_cascade(
     unmatched_detections = detection_indices
 
     matches = []
+    # cascade depth = max age
     for level in range(cascade_depth):
         if len(unmatched_detections) == 0:  # No detections left
             break
@@ -147,7 +148,7 @@ def matching_cascade(
             continue
 
         matches_l, _, unmatched_detections = \
-            min_cost_matching(
+            min_cost_matching( # max_distance=0.2
                 distance_metric, max_distance, tracks, detections,
                 track_indices_l, unmatched_detections)
         matches += matches_l

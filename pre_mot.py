@@ -45,6 +45,7 @@ class DeepSortDetector(object):
         display_height - 600
         save_path = "./video1_out.mp4"
     """
+
     def __init__(
             self,
             cfg,
@@ -96,7 +97,7 @@ class DeepSortDetector(object):
 
     def detect(self):
         frame_no = -1
-        # skip_no = 4
+        # skip_no = 2
 
         if self.output_file:
             f = open(output_file, "w")
@@ -105,7 +106,7 @@ class DeepSortDetector(object):
             frame_no += 1
 
             # skip frames every n frames
-            # if frame_no % skip_no != 3:
+            # if frame_no % skip_no != 0:
             #     continue
 
             # start time
@@ -123,7 +124,7 @@ class DeepSortDetector(object):
             ds_begin = time.time()
             if bbox_xyxy is not None:
                 bbox_cxcywh = xyxy2xywh(bbox_xyxy)
-                
+
                 outputs = self.deepsort.update(bbox_cxcywh, cls_conf, img)
 
                 if len(outputs) > 0:
@@ -147,13 +148,14 @@ class DeepSortDetector(object):
 
             import random
 
-            if random.randint(1,100)%10 == 0:
-                print("frame:%d|det:%.4f|deep sort:%.4f|total:%.4f|det p:%.2f%%|fps:%.2f"% ( frame_no,
-                        (yolo_end - yolo_begin),
-                        (ds_end - ds_begin),
-                        (total_end - total_begin),
-                        ((yolo_end - yolo_begin) * 100 /(total_end - total_begin)),
-                        (1 / (total_end - total_begin))))
+            if frame_no % 500 == 0:
+                print("frame:%04d|det:%.4f|deep sort:%.4f|total:%.4f|det p:%.2f%%|fps:%.2f" % (frame_no,
+                                                                                             (yolo_end - yolo_begin),
+                                                                                             (ds_end - ds_begin),
+                                                                                             (total_end - total_begin),
+                                                                                             ((yolo_end - yolo_begin) * 100 / (
+                                                                                                 total_end - total_begin)),
+                                                                                             (1 / (total_end - total_begin))))
 
             if self.display is True:
                 cv2.imshow("Test", img)
@@ -198,7 +200,7 @@ if __name__ == "__main__":
         output_file = join("./data/videoresult", folder + ".txt")
         save_path = join("./output", folder + ".avi")
         print("#"*30)
-        print("#"*10,folder,"#"*10)
+        print("#"*10, folder, "#"*10)
         print("#"*30)
         with DeepSortDetector(args.cfg, args.weights, video_path,
                               args.deep_checkpoint, args.data, output_file,
@@ -209,5 +211,5 @@ if __name__ == "__main__":
             det.detect()
 
         avi_name = os.path.basename(video_path).split(".")[0]
-        os.system("ffmpeg -y -i ./output/%s.avi -r 10 -b:a 32k ./output/%s.mp4" %
-                  (avi_name, avi_name))
+        # os.system("ffmpeg -y -i ./output/%s.avi -r 10 -b:a 32k ./output/%s.mp4" %
+        #           (avi_name, avi_name))
