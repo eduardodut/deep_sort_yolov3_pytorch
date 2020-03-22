@@ -1,8 +1,8 @@
+from models import build_model
 import argparse
 import os
 import time
 
-import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.backends.cudnn as cudnn
@@ -10,8 +10,10 @@ import torchvision
 import torch.optim as optim
 
 from utils.center_loss import CenterLoss
+import matplotlib
 
-from models import build_model
+matplotlib.use('Agg')
+
 
 input_size = (128, 128)
 
@@ -54,14 +56,14 @@ transform_test = torchvision.transforms.Compose([
 ])
 trainloader = torch.utils.data.DataLoader(torchvision.datasets.ImageFolder(
     train_dir, transform=transform_train),
-                                          batch_size=32,
-                                          shuffle=True,
-                                          num_workers=4)
+    batch_size=32,
+    shuffle=True,
+    num_workers=4)
 testloader = torch.utils.data.DataLoader(torchvision.datasets.ImageFolder(
     test_dir, transform=transform_test),
-                                         batch_size=32,
-                                         shuffle=True,
-                                         num_workers=4)
+    batch_size=32,
+    shuffle=True,
+    num_workers=4)
 
 num_classes = len(trainloader.dataset.classes)
 
@@ -69,7 +71,8 @@ num_classes = len(trainloader.dataset.classes)
 # net definition #
 ##################
 start_epoch = 0
-net = build_model(name=args.model, num_classes=num_classes, pretrained=args.pretrained)
+net = build_model(name=args.model, num_classes=num_classes,
+                  pretrained=args.pretrained)
 
 if args.resume:
     assert os.path.isfile(
@@ -86,8 +89,9 @@ net.to(device)
 
 # loss and optimizer
 criterion_model = torch.nn.CrossEntropyLoss(
-)  #CenterLoss(num_classes=num_classes)
-optimizer_model = torch.optim.SGD(net.parameters(), args.lr)  # from 3e-4 to 3e-5
+)  # CenterLoss(num_classes=num_classes)
+optimizer_model = torch.optim.SGD(
+    net.parameters(), args.lr)  # from 3e-4 to 3e-5
 criterion_center = CenterLoss(num_classes=num_classes, feat_dim=num_classes)
 optimizer_center = optim.Adam(criterion_center.parameters(), lr=0.005)
 
