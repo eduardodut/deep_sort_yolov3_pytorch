@@ -11,7 +11,7 @@ ONNX_EXPORT = False
 def create_modules(module_defs, img_size, arc):
     # Constructs module list of layer blocks from module configuration in module_defs
 
-    hyperparams = module_defs.pop(0) # 去掉net层
+    hyperparams = module_defs.pop(0)  # 去掉net层
     output_filters = [int(hyperparams['channels'])]
     module_list = nn.ModuleList()
     routs = []  # list of layers which rout to deeper layes
@@ -39,7 +39,8 @@ def create_modules(module_defs, img_size, arc):
             if bn:
                 modules.add_module('BatchNorm2d',
                                    nn.BatchNorm2d(filters, momentum=0.1))
-            if mdef['activation'] == 'leaky':  # TODO: activation study https://github.com/ultralytics/yolov3/issues/441
+            # TODO: activation study https://github.com/ultralytics/yolov3/issues/441
+            if mdef['activation'] == 'leaky':
                 modules.add_module('activation', nn.LeakyReLU(0.1,
                                                               inplace=True))
                 # modules.add_module('activation', nn.PReLU(num_parameters=1, init=0.10))
@@ -82,7 +83,7 @@ def create_modules(module_defs, img_size, arc):
             modules = nn.Upsample(scale_factor=int(mdef['stride']),
                                   mode='nearest')
 
-        elif mdef['type'] == 'route':  
+        elif mdef['type'] == 'route':
             # nn.Sequential() placeholder for 'route' layer
             layers = [int(x) for x in mdef['layers'].split(',')]
             filters = sum(
@@ -91,7 +92,7 @@ def create_modules(module_defs, img_size, arc):
             # if mdef[i+1]['type'] == 'reorg3d':
             #     modules = nn.Upsample(scale_factor=1/float(mdef[i+1]['stride']), mode='nearest')  # reorg3d
 
-        elif mdef['type'] == 'shortcut': 
+        elif mdef['type'] == 'shortcut':
             # nn.Sequential() placeholder for 'shortcut' layer
             filters = output_filters[int(mdef['from'])]
             layer = int(mdef['from'])
@@ -121,11 +122,14 @@ def create_modules(module_defs, img_size, arc):
                     b = [0, -8.5]
                 elif arc == 'uCE':  # unified CE (1 background + 80 classes)
                     b = [10, -0.1]
-                elif arc == 'Fdefault':  # Focal default no pw (28 cls, 21 obj, no pw)
+                # Focal default no pw (28 cls, 21 obj, no pw)
+                elif arc == 'Fdefault':
                     b = [-2.1, -1.8]
-                elif arc == 'uFBCE' or arc == 'uFBCEpw':  # unified FocalBCE (5120 obj, 80 classes)
+                # unified FocalBCE (5120 obj, 80 classes)
+                elif arc == 'uFBCE' or arc == 'uFBCEpw':
                     b = [0, -6.5]
-                elif arc == 'uFCE':  # unified FocalCE (64 cls, 1 background + 80 classes)
+                # unified FocalCE (64 cls, 1 background + 80 classes)
+                elif arc == 'uFCE':
                     b = [7.7, -1.1]
 
                 bias = module_list[-1][0].bias.view(len(mask),
@@ -217,11 +221,11 @@ class YOLOLayer(nn.Module):
     def __init__(self, anchors, nc, img_size, yolo_index, arc):
         super(YOLOLayer, self).__init__()
 
-        self.anchors = torch.Tensor(anchors) # [[81,82],[135,169],[344,319]]
+        self.anchors = torch.Tensor(anchors)  # [[81,82],[135,169],[344,319]]
         self.na = len(anchors)  # number of anchors (3)
         self.nc = nc  # number of classes (80)
-        self.nx = 0  # initialize number of x gridpoints 
-        self.ny = 0  # initialize number of y gridpoints 
+        self.nx = 0  # initialize number of x gridpoints
+        self.ny = 0  # initialize number of y gridpoints
         self.arc = arc
 
         if ONNX_EXPORT:  # grids must be computed in __init__
@@ -240,7 +244,8 @@ class YOLOLayer(nn.Module):
                 create_grids(self, img_size, (nx, ny), p.device, p.dtype)
 
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
-        p = p.view(bs, self.na, self.nc + 5, self.ny,self.nx).permute(0, 1, 3, 4, 2).contiguous()  # prediction
+        p = p.view(bs, self.na, self.nc + 5, self.ny,
+                   self.nx).permute(0, 1, 3, 4, 2).contiguous()  # prediction
 
         if self.training:
             return p
