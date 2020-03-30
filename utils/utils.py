@@ -221,7 +221,6 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
             ax.set_ylim(0, 1)
             fig.tight_layout()
             plt.grid(True)
-            
 
             fig.savefig('PR_curve.png', dpi=300)
 
