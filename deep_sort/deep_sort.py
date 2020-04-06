@@ -61,6 +61,7 @@ class DeepSort(object):
         self.tracker.update(detections)
 
         # output bbox identities
+        # 存储结果以及可视化
         outputs = []
         for track in self.tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:

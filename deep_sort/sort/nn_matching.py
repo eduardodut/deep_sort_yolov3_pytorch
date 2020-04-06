@@ -154,7 +154,7 @@ class NearestNeighborDistanceMetric(object):
 
     def partial_fit(self, features, targets, active_targets):
         # 作用：部分拟合，用新的数据更新测量距离
-        # 调用：在特征集更新模块部分调用
+        # 调用：在特征集更新模块部分调用，tracker.update()中
         """Update the distance metric with new data.
 
         Parameters
@@ -182,8 +182,7 @@ class NearestNeighborDistanceMetric(object):
         # 作用：比较feature和targets之间的距离，返回一个代价矩阵
         # 调用：在匹配阶段，将distance封装为gated_metric,
         #       进行外观信息(reid得到的深度特征)+
-        #       运动信息(马氏距离用于度量两个分布相似程度，
-        #               )
+        #       运动信息(马氏距离用于度量两个分布相似程度)
         """Compute distance between features and targets.
 
         Parameters

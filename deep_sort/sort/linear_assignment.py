@@ -52,21 +52,42 @@ def min_cost_matching(
 
     if len(detection_indices) == 0 or len(track_indices) == 0:
         return [], track_indices, detection_indices  # Nothing to match.
-
+    # -----------------------------------------
+    # Gated_distance——>
+    #       1. cosine distance
+    #       2. 马氏距离
+    # 得到代价矩阵
+    # -----------------------------------------
+    # iou_cost——>
+    #       仅仅计算track和detection之间的iou距离
+    # -----------------------------------------
     cost_matrix = distance_metric(
         tracks, detections, track_indices, detection_indices)
-
+    # -----------------------------------------
+    # gated_distance中设置距离中最高上限，
+    # 这里最远距离实际是在deep sort类中的max_dist参数设置的
+    # 默认max_dist=0.2， 距离越小越好
+    # -----------------------------------------
+    # iou_cost情况下，max_distance的设置对应tracker中的max_iou_distance,
+    # 默认值为max_iou_distance=0.7
+    # 注意结果是1-iou，所以越小越好
+    # -----------------------------------------
     cost_matrix[cost_matrix > max_distance] = max_distance + 1e-5
 
+    # 匈牙利算法或者KM算法
     row_indices, col_indices = linear_assignment(cost_matrix)
 
     matches, unmatched_tracks, unmatched_detections = [], [], []
+
+    # 这几个for循环用于对匹配结果进行筛选，得到匹配和未匹配的结果
     for col, detection_idx in enumerate(detection_indices):
         if col not in col_indices:
             unmatched_detections.append(detection_idx)
+
     for row, track_idx in enumerate(track_indices):
         if row not in row_indices:
             unmatched_tracks.append(track_idx)
+
     for row, col in zip(row_indices, col_indices):
         track_idx = track_indices[row]
         detection_idx = detection_indices[col]
@@ -75,21 +96,25 @@ def min_cost_matching(
             unmatched_detections.append(detection_idx)
         else:
             matches.append((track_idx, detection_idx))
+    # 得到匹配，未匹配轨迹，未匹配检测
     return matches, unmatched_tracks, unmatched_detections
 
 
 def matching_cascade(
         distance_metric, max_distance, cascade_depth, tracks, detections,
         track_indices=None, detection_indices=None):
+    # 级联匹配 !!!!!!!!!!!
     '''
+    调用：
     matches_a, unmatched_tracks_a, unmatched_detections = \
     linear_assignment.matching_cascade(gated_metric ,
-                self.metric.matching_threshold , 
-                self.max_age ,
-                self.tracks , 
-                detections , 
+                self.metric.matching_threshold, \
+                self.max_age, \
+                self.tracks,  \
+                detections,  \
                 confirmed_tracks)
     '''
+
     """Run matching cascade.
 
     Parameters
@@ -126,6 +151,8 @@ def matching_cascade(
         * A list of unmatched detection indices.
 
     """
+
+    # 1. 分配track_indices和detection_indices
     if track_indices is None:
         track_indices = list(range(len(tracks)))
 
@@ -135,7 +162,7 @@ def matching_cascade(
     unmatched_detections = detection_indices
 
     matches = []
-    # cascade depth = max age
+    # cascade depth = max age 默认为70
     for level in range(cascade_depth):
         if len(unmatched_detections) == 0:  # No detections left
             break
@@ -147,8 +174,9 @@ def matching_cascade(
         if len(track_indices_l) == 0:  # Nothing to match at this level
             continue
 
+        # 2. 级联匹配核心内容就是这个函数
         matches_l, _, unmatched_detections = \
-            min_cost_matching( # max_distance=0.2
+            min_cost_matching(  # max_distance=0.2
                 distance_metric, max_distance, tracks, detections,
                 track_indices_l, unmatched_detections)
         matches += matches_l
