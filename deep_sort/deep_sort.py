@@ -12,16 +12,24 @@ __all__ = ['DeepSort']
 class DeepSort(object):
     def __init__(self, model_path, max_dist=0.2):
         self.min_confidence = 0.3
+        # yolov3中检测结果置信度阈值
+
         self.nms_max_overlap = 1.0
 
+        # 用于提取图片的embedding,返回的是一个batch图片对应的特征
         self.extractor = Extractor("mobilenetv2_x1_0",
                                    model_path,
                                    use_cuda=True)
 
         max_cosine_distance = max_dist
+        # 用在级联匹配的地方，如果大于改阈值，就直接忽略
         nn_budget = 100
+        # 预算，每个类别最多的样本个数，如果超过，删除旧的
+
+        # 第一个参数可选'cosine' or 'euclidean'
         metric = NearestNeighborDistanceMetric("cosine",
-                                               max_cosine_distance, nn_budget)
+                                               max_cosine_distance, 
+                                               nn_budget)
         self.tracker = Tracker(metric)
 
     def update(self, bbox_xywh, confidences, ori_img):

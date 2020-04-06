@@ -8,6 +8,8 @@ from .track import Track
 
 
 class Tracker:
+    # 是一个多目标tracker，保存了很多个track轨迹
+    # 负责调用卡尔曼滤波来预测track的新状态+进行匹配工作+初始化第一帧
     """
     This is the multi-target tracker.
 

@@ -153,6 +153,8 @@ class NearestNeighborDistanceMetric(object):
         self.samples = {}
 
     def partial_fit(self, features, targets, active_targets):
+        # 作用：部分拟合，用新的数据更新测量距离
+        # 调用：在特征集更新模块部分调用
         """Update the distance metric with new data.
 
         Parameters
@@ -167,12 +169,21 @@ class NearestNeighborDistanceMetric(object):
         """
         for feature, target in zip(features, targets):
             self.samples.setdefault(target, []).append(feature)
+            # 对应目标下添加新的feature，更新feature集合
+            # 目标id  :  feature list
             if self.budget is not None:
                 self.samples[target] = self.samples[target][-self.budget:]
+            # 设置预算，每个类最多多少个目标，超过直接忽略
+        
+        # 筛选激活的目标
         self.samples = {k: self.samples[k] for k in active_targets}
 
     def distance(self, features, targets):
-        # 比较feature和targets之间的距离，返回一个代价矩阵
+        # 作用：比较feature和targets之间的距离，返回一个代价矩阵
+        # 调用：在匹配阶段，将distance封装为gated_metric,
+        #       进行外观信息(reid得到的深度特征)+
+        #       运动信息(马氏距离用于度量两个分布相似程度，
+        #               )
         """Compute distance between features and targets.
 
         Parameters
