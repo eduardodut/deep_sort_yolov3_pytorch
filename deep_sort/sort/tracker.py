@@ -90,8 +90,7 @@ class Tracker:
         for track_idx in unmatched_tracks:
             self.tracks[track_idx].mark_missed()
 
-        # 3. 针对未匹配的detection
-        # detection失配，进行初始化
+        # 3. 针对未匹配的detection， detection失配，进行初始化
         for detection_idx in unmatched_detections:
             self._initiate_track(detections[detection_idx])
 
