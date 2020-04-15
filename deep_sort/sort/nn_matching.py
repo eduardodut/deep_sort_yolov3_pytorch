@@ -2,6 +2,7 @@
 import numpy as np
 
 
+# 计算欧氏距离
 def _pdist(a, b):
     # 用于计算成对的平方距离
     # a NxM 代表N个对象，每个对象有M个数值作为embedding进行比较
@@ -24,11 +25,13 @@ def _pdist(a, b):
         contains the squared distance between `a[i]` and `b[j]`.
 
     """
-    a, b = np.asarray(a), np.asarray(b)# 拷贝一份数据
+    a, b = np.asarray(a), np.asarray(b)  # 拷贝一份数据
     if len(a) == 0 or len(b) == 0:
         return np.zeros((len(a), len(b)))
-    a2, b2 = np.square(a).sum(axis=1), np.square(b).sum(axis=1) # 求每个embedding的平方和
-    r2 = -2. * np.dot(a, b.T) + a2[:, None] + b2[None, :] # sum(N) + sum(L) -2 x [NxM]x[MxL] = [NxL]
+    a2, b2 = np.square(a).sum(axis=1), np.square(
+        b).sum(axis=1)  # 求每个embedding的平方和
+    # sum(N) + sum(L) -2 x [NxM]x[MxL] = [NxL]
+    r2 = -2. * np.dot(a, b.T) + a2[:, None] + b2[None, :]
     r2 = np.clip(r2, 0., float(np.inf))
     return r2
 
@@ -38,7 +41,6 @@ def _cosine_distance(a, b, data_is_normalized=False):
     # a : [NxM] b : [LxM]
     # 余弦距离 = 1 - 余弦相似度
     # https://blog.csdn.net/u013749540/article/details/51813922
-    
     """Compute pair-wise cosine distance between points in `a` and `b`.
 
     Parameters
@@ -60,7 +62,7 @@ def _cosine_distance(a, b, data_is_normalized=False):
     """
     if not data_is_normalized:
         # 需要将余弦相似度转化成类似欧氏距离的余弦距离。
-        a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True) 
+        a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
         #  np.linalg.norm 操作是求向量的范式，默认是L2范式，等同于求向量的欧式距离。
         b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
     return 1. - np.dot(a, b.T)
@@ -85,7 +87,7 @@ def _nn_euclidean_distance(x, y):
 
     """
     distances = _pdist(x, y)
-    return np.maximum(0.0, distances.min(axis=0)) # 找到最小值
+    return np.maximum(0.0, distances.min(axis=0))  # 找到最小值
 
 
 def _nn_cosine_distance(x, y):
@@ -137,7 +139,6 @@ class NearestNeighborDistanceMetric(object):
 
     def __init__(self, metric, matching_threshold, budget=None):
         # 默认matching_threshold = 0.2 budge = 100
-        # budge 
         if metric == "euclidean":
             # 使用最近邻欧氏距离
             self._metric = _nn_euclidean_distance
@@ -147,10 +148,14 @@ class NearestNeighborDistanceMetric(object):
         else:
             raise ValueError(
                 "Invalid metric; must be either 'euclidean' or 'cosine'")
-        
+
         self.matching_threshold = matching_threshold
+        # matching_threshold是在级联匹配的函数中调用
         self.budget = budget
+        # budge 预算，控制feature的多少
+
         self.samples = {}
+        # samples是一个字典{id->feature list}
 
     def partial_fit(self, features, targets, active_targets):
         # 作用：部分拟合，用新的数据更新测量距离
@@ -165,7 +170,6 @@ class NearestNeighborDistanceMetric(object):
             An integer array of associated target identities.
         active_targets : List[int]
             A list of targets that are currently present in the scene.
-
         """
         for feature, target in zip(features, targets):
             self.samples.setdefault(target, []).append(feature)
@@ -174,7 +178,7 @@ class NearestNeighborDistanceMetric(object):
             if self.budget is not None:
                 self.samples[target] = self.samples[target][-self.budget:]
             # 设置预算，每个类最多多少个目标，超过直接忽略
-        
+
         # 筛选激活的目标
         self.samples = {k: self.samples[k] for k in active_targets}
 

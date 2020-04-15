@@ -12,9 +12,10 @@ __all__ = ['DeepSort']
 class DeepSort(object):
     def __init__(self, model_path, max_dist=0.2):
         self.min_confidence = 0.3
-        # yolov3中检测结果置信度阈值
+        # yolov3中检测结果置信度阈值，筛选置信度小于0.3的detection。
 
         self.nms_max_overlap = 1.0
+        # 非极大抑制阈值，设置为1代表不进行抑制
 
         # 用于提取图片的embedding,返回的是一个batch图片对应的特征
         self.extractor = Extractor("mobilenetv2_x1_0",
@@ -28,7 +29,7 @@ class DeepSort(object):
 
         # 第一个参数可选'cosine' or 'euclidean'
         metric = NearestNeighborDistanceMetric("cosine",
-                                               max_cosine_distance, 
+                                               max_cosine_distance,
                                                nn_budget)
         self.tracker = Tracker(metric)
 
@@ -36,7 +37,7 @@ class DeepSort(object):
         self.height, self.width = ori_img.shape[:2]
         # generate detections
         features = self._get_features(bbox_xywh, ori_img)
-        #从原图中crop bbox对应图片并计算得到embedding
+        # 从原图中crop bbox对应图片并计算得到embedding
         bbox_tlwh = self._xywh_to_tlwh(bbox_xywh)
 
         detections = [

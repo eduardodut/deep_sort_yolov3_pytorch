@@ -83,11 +83,11 @@ class KalmanFilter(object):
             2 * self._std_weight_position * measurement[3],  # y
             1e-2,                                            # a
             2 * self._std_weight_position * measurement[3],  # h
-            10 * self._std_weight_velocity * measurement[3], # vx
-            10 * self._std_weight_velocity * measurement[3], # vy
+            10 * self._std_weight_velocity * measurement[3],  # vx
+            10 * self._std_weight_velocity * measurement[3],  # vy
             1e-5,                                            # va
-            10 * self._std_weight_velocity * measurement[3]] # vh
-        covariance = np.diag(np.square(std)) # 对角线 [8, 8]
+            10 * self._std_weight_velocity * measurement[3]]  # vh
+        covariance = np.diag(np.square(std))  # 对角线 [8, 8]
 
         return mean, covariance
 
@@ -240,4 +240,4 @@ class KalmanFilter(object):
             cholesky_factor, d.T, lower=True, check_finite=False,
             overwrite_b=True)
         squared_maha = np.sum(z * z, axis=0)
-        return squared_maha # 马氏距离
+        return squared_maha  # 马氏距离

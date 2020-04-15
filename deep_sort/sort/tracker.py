@@ -50,14 +50,13 @@ class Tracker:
         self.n_init = n_init
         # n_init代表需要n_init次数的update才会将track状态设置为confirmed
 
-        self.kf = kalman_filter.KalmanFilter()
-        self.tracks = []
-        self._next_id = 1
+        self.kf = kalman_filter.KalmanFilter()  # 卡尔曼滤波器
+        self.tracks = []  # 保存一系列轨迹
+        self._next_id = 1  # 下一个分配的轨迹id
 
     def predict(self):
         # 遍历每个track都进行一次预测
         """Propagate track state distributions one time step forward.
-
         This function should be called once every time step, before `update`.
         """
         for track in self.tracks:
@@ -65,7 +64,6 @@ class Tracker:
 
     def update(self, detections):
         # 进行测量的更新和轨迹管理
-        # 
         """Perform measurement update and track management.
 
         Parameters
@@ -108,8 +106,8 @@ class Tracker:
             # 获取每个feature对应的track id
             targets += [track.track_id for _ in track.features]
             track.features = []
-        
-        # 特征集更新
+
+        # 距离度量中的 特征集更新
         self.metric.partial_fit(np.asarray(features), np.asarray(targets),
                                 active_targets)
 
@@ -141,48 +139,50 @@ class Tracker:
             i for i, t in enumerate(self.tracks) if not t.is_confirmed()
         ]
 
-        # Associate confirmed tracks using appearance features.
         # 进行级联匹配，得到匹配的track、不匹配的track、不匹配的detection
-
         '''
         !!!!!!!!!!!
         级联匹配
         !!!!!!!!!!!
         '''
         # gated_metric->cosine distance
+        # 仅仅对确定态的轨迹进行级联匹配
         matches_a, unmatched_tracks_a, unmatched_detections = \
-            linear_assignment.matching_cascade(  # 进行级联匹配
-                gated_metric, self.metric.matching_threshold, self.max_age,
-                self.tracks, detections, confirmed_tracks)
+            linear_assignment.matching_cascade(
+                gated_metric,
+                self.metric.matching_threshold,
+                self.max_age,
+                self.tracks,
+                detections,
+                confirmed_tracks)
 
-        # Associate remaining tracks together with unconfirmed tracks using IOU.
-        # 使用IOU将剩下的轨迹和未确认轨迹进行匹配
-
+        # 将所有状态为未确定态的轨迹和刚刚没有匹配上的轨迹组合为iou_track_candidates，
+        # 进行IoU的匹配
         iou_track_candidates = unconfirmed_tracks + [
             k for k in unmatched_tracks_a
-            if self.tracks[k].time_since_update == 1
+            if self.tracks[k].time_since_update == 1  # 刚刚没有匹配上
         ]
+        # 未匹配
         unmatched_tracks_a = [
             k for k in unmatched_tracks_a
-            if self.tracks[k].time_since_update != 1
+            if self.tracks[k].time_since_update != 1  # 已经很久没有匹配上
         ]
-        
+
         '''
         !!!!!!!!!!!
         IOU 匹配
         对级联匹配中还没有匹配成功的目标再进行IoU匹配
         !!!!!!!!!!!
         '''
-        # TODO 有一定改进空间
         # 虽然和级联匹配中使用的都是min_cost_matching作为核心，
         # 这里使用的metric是iou cost和以上不同
         matches_b, unmatched_tracks_b, unmatched_detections = \
-            linear_assignment.min_cost_matching(  # 进行线性匹配
-                iou_matching.iou_cost, \
-                self.max_iou_distance, \
-                self.tracks, \
-                detections, \
-                iou_track_candidates, \
+            linear_assignment.min_cost_matching(
+                iou_matching.iou_cost,
+                self.max_iou_distance,
+                self.tracks,
+                detections,
+                iou_track_candidates,
                 unmatched_detections)
 
         matches = matches_a + matches_b  # 组合两部分match得到的结果

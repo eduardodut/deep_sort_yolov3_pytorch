@@ -25,7 +25,7 @@ parser.add_argument("--gpu-id", default=0, type=int)
 parser.add_argument("--lr", default=0.1, type=float)
 parser.add_argument("--interval", '-i', default=10, type=int)
 parser.add_argument('--resume', '-r', action='store_true')
-parser.add_argument('--model', type=str, default="mudeep")
+parser.add_argument('--model', type=str, default="osnet_ibn_x1_0")
 parser.add_argument('--pretrained', action="store_true")
 args = parser.parse_args()
 

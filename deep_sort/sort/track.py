@@ -74,11 +74,10 @@ class Track:
         # hits和n_init进行比较
         # hits每次update的时候进行一次更新（只有match的时候才进行update）
         # hits代表匹配上了多少次，匹配次数超过n_init就会设置为confirmed状态
-        self.age = 1
+        self.age = 1 # 没有用到,和time_since_update功能重复
         self.time_since_update = 0
         # 每次调用predict函数的时候就会+1
         # 每次调用update函数的时候就会设置为0
-        # 
 
         self.state = TrackState.Tentative
         self.features = []
