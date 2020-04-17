@@ -124,6 +124,7 @@ class Tracker:
 
             # 1. 通过最近邻计算出代价矩阵 cosine distance
             cost_matrix = self.metric.distance(features, targets)
+            
             # 2. 计算马氏距离,得到新的状态矩阵
             cost_matrix = linear_assignment.gate_cost_matrix(
                 self.kf, cost_matrix, tracks, dets, track_indices,

@@ -103,7 +103,7 @@ def min_cost_matching(
 def matching_cascade(
         distance_metric, max_distance, cascade_depth, tracks, detections,
         track_indices=None, detection_indices=None):
-    # 级联匹配 !!!!!!!!!!!
+    # 级联匹配
     '''
     调用：
     matches_a, unmatched_tracks_a, unmatched_detections = \
@@ -222,14 +222,16 @@ def gate_cost_matrix(
         Returns the modified cost matrix.
     """
     gating_dim = 2 if only_position else 4
-    gating_threshold = kalman_filter.chi2inv95[gating_dim]
+    gating_threshold = kalman_filter.chi2inv95[gating_dim]  # 9.4877
 
-    measurements = np.asarray(
-        [detections[i].to_xyah() for i in detection_indices])
+    measurements = np.asarray([detections[i].to_xyah()
+                               for i in detection_indices])
 
     for row, track_idx in enumerate(track_indices):
         track = tracks[track_idx]
         gating_distance = kf.gating_distance(
             track.mean, track.covariance, measurements, only_position)
-        cost_matrix[row, gating_distance > gating_threshold] = gated_cost
+        cost_matrix[row, gating_distance >
+                    gating_threshold] = gated_cost  # 设置为inf
+
     return cost_matrix
