@@ -100,7 +100,7 @@ class Detector(object):
 
             t2_begin = time.time()
             if bbox_xxyy is not None:
-                # select class 
+                # select class
                 # mask = cls_ids == 0
                 # bbox_xxyy = bbox_xxyy[mask]
 
@@ -116,12 +116,14 @@ class Detector(object):
                     # 画框
                     ori_im = draw_bboxes(ori_im, bbox_xyxy, identities)
 
-                    #frame, id, tlwh(%.2f),1,-1,-1,-1
+                    # frame, id, tlwh(%.2f),1,-1,-1,-1
                     if outfile is not None:
                         box_xywh = xyxy2tlwh(bbox_xyxy)
                         for i in range(len(box_xywh)):
                             write_line = "%d,%d,%d,%d,%d,%d,1,-1,-1,-1\n" % (
-                                frame_cnt + 1, outputs[i,-1], int(box_xywh[i][0]), int(box_xywh[i][1]),
+                                frame_cnt +
+                                1, outputs[i, -1], int(box_xywh[i]
+                                                       [0]), int(box_xywh[i][1]),
                                 int(box_xywh[i][2]), int(box_xywh[i][3]))
                             f.write(write_line)
 
@@ -150,18 +152,17 @@ def parse_args():
     parser.add_argument("--yolo_cfg",
                         type=str,
                         default="cfg/yolov3-tiny-1cls.cfg"
-                        )  #"uolov3/cfg/yolov3-1cls-d1.cfg")
+                        )  # "uolov3/cfg/yolov3-1cls-d1.cfg")
     parser.add_argument(
         "--yolo_weights",
         type=str,
-        default=
-        "weights/best.pt"  #"weights/12-19-yolov3-tiny-3l/best.pt"
+        default="weights/best.pt"  # "weights/12-19-yolov3-tiny-3l/best.pt"
     )
-    parser.add_argument("--conf_thresh", type=float, default=0.5)  #ori 0.5
+    parser.add_argument("--conf_thresh", type=float, default=0.5)  # ori 0.5
     parser.add_argument("--nms_thresh", type=float, default=0.4)
     parser.add_argument("--deepsort_checkpoint",
                         type=str,
-                        default="deep_sort/deep/checkpoint/best.pt")
+                        default="deep_sort/deep/checkpoint/resnet18/resnet18_best.pt")
     parser.add_argument("--max_dist", type=float, default=0.2)
     parser.add_argument("--ignore_display",
                         dest="display",
@@ -181,5 +182,5 @@ if __name__ == "__main__":
     with Detector(args) as det:
         det.detect(output_file)
 
-    # os.system("ffmpeg -y -i demo.avi -r 10 -b:a 32k %s_output.mp4" %
-    #           (os.path.basename(args.VIDEO_PATH).split('.')[0]))
+    os.system("ffmpeg -y -i demo.avi -r 10 -b:a 32k %s_output.mp4" %
+              (os.path.basename(args.VIDEO_PATH).split('.')[0]))

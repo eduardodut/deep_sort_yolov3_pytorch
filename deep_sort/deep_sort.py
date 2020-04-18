@@ -18,7 +18,7 @@ class DeepSort(object):
         # 非极大抑制阈值，设置为1代表不进行抑制
 
         # 用于提取图片的embedding,返回的是一个batch图片对应的特征
-        self.extractor = Extractor("mobilenetv2_x1_0",
+        self.extractor = Extractor("resnet18",
                                    model_path,
                                    use_cuda=True)
 
