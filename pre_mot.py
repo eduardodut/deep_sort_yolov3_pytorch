@@ -1,5 +1,6 @@
 import argparse
 import os
+import random
 import time
 from os.path import join
 
@@ -146,16 +147,14 @@ class DeepSortDetector(object):
 
             total_end = time.time()
 
-            import random
-
             if frame_no % 500 == 0:
                 print("frame:%04d|det:%.4f|deep sort:%.4f|total:%.4f|det p:%.2f%%|fps:%.2f" % (frame_no,
-                                                                                             (yolo_end - yolo_begin),
-                                                                                             (ds_end - ds_begin),
-                                                                                             (total_end - total_begin),
-                                                                                             ((yolo_end - yolo_begin) * 100 / (
-                                                                                                 total_end - total_begin)),
-                                                                                             (1 / (total_end - total_begin))))
+                                                                                               (yolo_end - yolo_begin),
+                                                                                               (ds_end - ds_begin),
+                                                                                               (total_end - total_begin),
+                                                                                               ((yolo_end - yolo_begin) * 100 / (
+                                                                                                   total_end - total_begin)),
+                                                                                               (1 / (total_end - total_begin))))
 
             if self.display is True:
                 cv2.imshow("Test", img)

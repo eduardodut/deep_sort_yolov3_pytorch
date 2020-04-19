@@ -85,13 +85,11 @@ class Detector(object):
         while self.vdo.grab():
             frame_cnt += 1
 
-            # skip frames every 3 frames
             if frame_cnt % 3 == 0:
                 continue
 
             start = time.time()
             _, ori_im = self.vdo.retrieve()
-            # im = cv2.cvtColor(ori_im, cv2.COLOR_BGR2RGB)
             im = ori_im
 
             t1_begin = time.time()
@@ -151,15 +149,15 @@ def parse_args():
     parser.add_argument("VIDEO_PATH", type=str)
     parser.add_argument("--yolo_cfg",
                         type=str,
-                        default="cfg/yolov3-tiny-1cls.cfg"
-                        )  # "uolov3/cfg/yolov3-1cls-d1.cfg")
+                        default="../YOLOv3-complete-pruning-master/cfg/dense-v3-tiny-spp.cfg"
+                        ) 
     parser.add_argument(
         "--yolo_weights",
         type=str,
-        default="weights/best.pt"  # "weights/12-19-yolov3-tiny-3l/best.pt"
+        default="../YOLOv3-complete-pruning-master/weights/A6/last.pt"
     )
     parser.add_argument("--conf_thresh", type=float, default=0.5)  # ori 0.5
-    parser.add_argument("--nms_thresh", type=float, default=0.4)
+    parser.add_argument("--nms_thresh", type=float, default=0.3)
     parser.add_argument("--deepsort_checkpoint",
                         type=str,
                         default="deep_sort/deep/checkpoint/resnet18/resnet18_best.pt")
