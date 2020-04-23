@@ -21,6 +21,8 @@
 storage.googleapis.com
 runs/*
 data/*
+!README.assets/*.png
+!README.assets/*.jpg
 !data/samples/zidane.jpg
 !data/samples/bus.jpg
 !data/coco.names
