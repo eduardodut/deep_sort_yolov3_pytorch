@@ -85,7 +85,7 @@ class Track:
         if feature is not None:
             self.features.append(feature)
 
-        self._n_init = n_init  # 如果连续n_init帧都没有出现失配，设置为deleted状态
+        self._n_init = n_init  # 如果连续n_init帧都没有出现匹配，设置为deleted状态
         self._max_age = max_age  # 上限
 
     def to_tlwh(self):
