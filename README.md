@@ -1,8 +1,10 @@
 # DEEP SORT YOLOV3 PYTORCH
 
+目标检测部分代码可能有一些问题，将在近期更新
+
 目标检测：基于U版yolov3（版本比较早） https://github.com/ultralytics/yolov3 
 
-ReID部分(维护中，测试过程还未完善)： https://github.com/pprp/reid_for_deepsort 
+ReID部分： https://github.com/pprp/reid_for_deepsort 
 
 Deep SORT参考:  https://github.com/ZQPei/deep_sort_pytorch 
 
@@ -39,3 +41,4 @@ SORT参考： https://github.com/abewley/sort
 流程图：
 
  ![知乎@猫弟总结的deep sort流程图](README.assets/2020041418343015.png) 
+
