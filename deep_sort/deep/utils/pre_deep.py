@@ -9,7 +9,6 @@ import random
 根据视频和darklabel得到的标注文件
 """
 
-
 def preprocessVideo(video_path):
     '''
     预处理，将视频变为一帧一帧的图片

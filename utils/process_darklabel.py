@@ -67,10 +67,6 @@ def process_darklabel(video_label_path, mot_label_path):
 if __name__ == "__main__":
     root_dir = "./data/videosample"
 
-    # video_path = "./data/videosample/cutout24.mp4"
-    # video_label_path = "./data/videosample/cutout24_gt.txt"
-    # mot_label_path = "./data/videosample/cutout24_mot_gt.txt"
-
     for item in os.listdir(root_dir):
         full_path = os.path.join(root_dir, item)
 
