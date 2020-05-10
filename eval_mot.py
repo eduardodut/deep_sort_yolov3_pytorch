@@ -130,14 +130,10 @@ if __name__ == '__main__':
     ts = OrderedDict([(os.path.splitext(Path(f).parts[-1])[0],
                        mm.io.loadtxt(f, fmt=args.fmt)) for f in tsfiles])
 
-    # print("after:\n ", gt, ts)
-
     mh = mm.metrics.create()
-    # print(mh)
     accs, names = compare_dataframes(gt, ts)
 
     metrics = list(mm.metrics.motchallenge_metrics)
-    # print(metrics)
     if args.exclude_id:
         metrics = [x for x in metrics if not x.startswith('id')]
 

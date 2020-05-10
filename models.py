@@ -4,6 +4,7 @@ import torch.nn as nn
 from utils.google_utils import *
 from utils.parse_config import *
 from utils.utils import *
+from utils.layers import *
 
 ONNX_EXPORT = False
 
@@ -51,21 +52,47 @@ def create_modules(module_defs, img_size, arc):
             sa = SpatialAttention(kernel_size=int(mdef['size']))
             modules.add_module("channelAttention", ca)
             modules.add_module("SpatialAttention", sa)
+        # elif mdef['type'] == 'se':
+        #     '''
+        #     [se]
+        #     reduction=16
+        #     '''
+        #     avg_pool = nn.AdaptiveAvgPool2d(1)
+        #     fc = nn.Sequential(
+        #         nn.Linear(output_filters[-1],
+        #                   output_filters[-1] // int(mdef['size']),
+        #                   bias=False), nn.ReLU(inplace=True),
+        #         nn.Linear(output_filters[-1] // int(mdef['size']),
+        #                   output_filters[-1],
+        #                   bias=False), nn.Sigmoid())
+        #     modules.add_module("avgPooling", avg_pool)
+        #     modules.add_module("fullyconnect", fc)
+
         elif mdef['type'] == 'se':
-            '''
-            [se]
-            reduction=16
-            '''
-            avg_pool = nn.AdaptiveAvgPool2d(1)
-            fc = nn.Sequential(
-                nn.Linear(output_filters[-1],
-                          output_filters[-1] // int(mdef['size']),
-                          bias=False), nn.ReLU(inplace=True),
-                nn.Linear(output_filters[-1] // int(mdef['size']),
-                          output_filters[-1],
-                          bias=False), nn.Sigmoid())
-            modules.add_module("avgPooling", avg_pool)
-            modules.add_module("fullyconnect", fc)
+            layers = [int(x) for x in mdef['from'].split(',')]
+            filter_list = [output_filters[i + 1 if i > 0 else i]
+                           for i in layers]
+            filters = int(mdef['out_plane'])          # attention,
+            modules = SpecialSE(filter_list[0], filters, reduction=4)
+            routs.extend([l if l > 0 else l + i for l in layers])
+
+        elif mdef['type'] == 'spatialmaxpool':
+            # 52x52 26x26 13x13
+            froms = [int(x) for x in mdef['from'].split(',')]
+            shapes = [int(x) for x in mdef['shape'].split(',')]
+            out_plane = int(mdef['out_plane'])
+
+            # 计算filters
+            filters = out_plane
+
+            filter_list = [128, 128, 512]
+
+            # print(shapes,filter_list)
+
+            modules = SpatialMaxpool(shapes=shapes,
+                                     filters=filter_list,
+                                     out_plane=out_plane)
+            routs.extend([l if l > 0 else l + i for l in froms])
 
         elif mdef['type'] == 'maxpool':
             size = int(mdef['size'])
@@ -356,13 +383,28 @@ class Darknet(nn.Module):
                 x = ca(x) * x
                 x = sa(x) * x
             elif mtype == 'se':
-                avgpool = module[0]
-                fc = module[1]
-                tmp_x = x
-                b, c, _, _ = x.size()
-                x = avgpool(x).view(b, c)
-                x = fc(x).view(b, c, 1, 1)
-                x = tmp_x * x.expand_as(tmp_x)
+                froms = [int(x) for x in mdef['from'].split(',')]
+                x1 = layer_outputs[froms[0]]
+                y1 = layer_outputs[froms[1]]
+                x = module(x1, y1)
+
+            elif mtype == 'spatialmaxpool':
+                froms = [int(x) for x in mdef['from'].split(',')]
+                # print(froms)
+                # print(len(layer_outputs))
+                x1 = layer_outputs[froms[0]]
+                x2 = layer_outputs[froms[1]]
+                x3 = layer_outputs[froms[2]]
+                # print(x1.shape, x2.shape, x3.shape)
+                x = module(x1, x2, x3)
+            # elif mtype == 'se':
+            #     avgpool = module[0]
+            #     fc = module[1]
+            #     tmp_x = x
+            #     b, c, _, _ = x.size()
+            #     x = avgpool(x).view(b, c)
+            #     x = fc(x).view(b, c, 1, 1)
+            #     x = tmp_x * x.expand_as(tmp_x)
 
             layer_outputs.append(x if i in self.routs else [])
 

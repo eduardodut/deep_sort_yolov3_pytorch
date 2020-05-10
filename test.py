@@ -188,6 +188,8 @@ def test(cfg,
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in list(zip(*stats))]  # to numpy
 
+    # print(len(stats))
+
     if len(stats):
         """
         def ap_per_class(tp, conf, pred_cls, target_cls):
@@ -208,8 +210,10 @@ def test(cfg,
 
 
         if testing:
+            print(stats, len(stats))
             tp_1, conf_1, pred_cls_1, target_cls_1 = stats
             i_1 = np.argsort(-conf_1)
+            # print(tp_1[i_1].cumsum(0))
             tp_2 = tp_1[i_1].cumsum(0)[-1]
             fp_2 = (1 - tp_1[i_1]).cumsum(0)[-1]
 

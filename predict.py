@@ -124,7 +124,7 @@ if __name__ == "__main__":
     cfg = './cfg/yolov3-1cls.cfg'
     img_size = 416
     weight_path = './weights/best.pt'
-    img_file = "/home/dongpeijie/datasets/data_with_labelimg/images/train2014/0137-1162.jpg"  #"./images/train2014/0137-2112.jpg"
+    img_file = "/home/dongpeijie/datasets/data_with_labelimg/images/train2014/0137-1162.jpg"
     data_cfg = "./data/voc_small.data"
     conf_thres = 0.5
     nms_thres = 0.5
