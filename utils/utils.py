@@ -1159,7 +1159,7 @@ def rand_marker(idx=None):
     return marker_list[select_index]
 
 
-def plot_map(start=0, stop=0, bucket='', id=()):  # from utils.utils import *; plot_results()
+def plot_map(start=0, stop=0, bucket='', id=()):  # from utils.utils import *; plot_map()
     from matplotlib.ticker import FuncFormatter
 
     plt.figure(figsize=(10, 5))
