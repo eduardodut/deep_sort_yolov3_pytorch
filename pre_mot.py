@@ -171,11 +171,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('parser')
     # 必须指定
     parser.add_argument("--video_root", type=str, default="./data/videosample")
-    parser.add_argument("--cfg", type=str, default="cfg/yolov3.cfg")
-    parser.add_argument("--data", type=str, default="data/dataset1.data")
+    parser.add_argument("--cfg", type=str, default="cfg/mobile-yolo-cem.cfg")
+    parser.add_argument("--data", type=str, default="data/dataset4.data")
     parser.add_argument("--weights",
                         type=str,
-                        default="weights/best.pt")
+                        default="../YOLOv3-complete-pruning-master/weights/dataset4-mobile-yolo-cem/best.pt")
     parser.add_argument("--img_size", type=int, default=416)
     parser.add_argument(
         "--deep_checkpoint",

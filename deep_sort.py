@@ -81,6 +81,8 @@ class Detector(object):
 
         if outfile is not None:
             f = open(outfile, 'w')
+        
+        print("begin....")
 
         while self.vdo.grab():
             frame_cnt += 1
@@ -160,7 +162,7 @@ def parse_args():
     parser.add_argument("--nms_thresh", type=float, default=0.3)
     parser.add_argument("--deepsort_checkpoint",
                         type=str,
-                        default="deep_sort/deep/checkpoint/resnet18/resnet18_best.pt")
+                        default="deep_sort/deep/checkpoint/mobilenetv2_x1_0_best.pt")
     parser.add_argument("--max_dist", type=float, default=0.2)
     parser.add_argument("--ignore_display",
                         dest="display",
