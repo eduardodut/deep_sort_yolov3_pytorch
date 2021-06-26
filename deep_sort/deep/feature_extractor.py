@@ -2,7 +2,7 @@ import torch
 import torchvision.transforms as transforms
 import numpy as np
 import cv2
-
+import torchvision.models as models
 from .models import build_model
 # from .train import input_size
 
@@ -13,7 +13,9 @@ class Extractor(object):
                                num_classes=96)  #osnet_small(96, reid=True)
         self.device = "cuda" if torch.cuda.is_available(
         ) and use_cuda else "cpu"
+        model = models.mobilenet_v2(pretrained=True, progress=True)
         state_dict = torch.load(model_path)['net_dict']
+        
         self.net.load_state_dict(state_dict)
         print("Loading weights from {}... Done!".format(model_path))
         self.net.to(self.device)
